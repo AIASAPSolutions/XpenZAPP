@@ -12,21 +12,23 @@ import useTheme from '../../hooks/useTheme';
 import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { bentoText } from '../../constants/bento';
 import { formatINR } from '../../utils/currency';
 import { getCategoryById } from '../../constants/categories';
 import * as reportsApi from '../../api/reports';
 
 // Custom elements
-import Card from '../../components/common/Card';
+import BentoCard from '../../components/common/BentoCard';
+import BentoRow from '../../components/common/BentoRow';
 import ExpenseCard from '../../components/expenses/ExpenseCard';
-import Divider from '../../components/common/Divider';
 import EmptyState from '../../components/common/EmptyState';
+import SpendingTrendChart from '../../components/reports/SpendingTrendChart';
 import { openAppDrawer } from '../../utils/navigation';
 
 export const DashboardScreen = ({ navigation }) => {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const { expenses, fetchExpenses } = useExpenses();
+  const { expenses, projects, fetchExpenses } = useExpenses();
   const { budgets, fetchBudgets } = useBudgets();
   const showToast = useUiStore((state) => state.showToast);
   const [overview, setOverview] = useState(null);
@@ -47,9 +49,8 @@ export const DashboardScreen = ({ navigation }) => {
   const totalSpentThisMonth = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
   // Prefer the backend analytics total when available, fall back to local sum
   const displayTotalSpent = overview?.totalSpent ?? totalSpentThisMonth;
-  const totalBudgeted = budgets.reduce((sum, b) => sum + b.amount, 0) || 97000;
-  const remainingBudget = Math.max(0, totalBudgeted - totalSpentThisMonth);
-  const consumedPercent = totalBudgeted > 0 ? (totalSpentThisMonth / totalBudgeted) : 0;
+  const aiParsedCount = expenses.filter(e => e.isAiParsed).length;
+  const aiEfficiencyPercent = expenses.length > 0 ? Math.round((aiParsedCount / expenses.length) * 100) : 0;
 
   const handleMicPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -76,173 +77,137 @@ export const DashboardScreen = ({ navigation }) => {
     return 'Good evening';
   };
 
+  const ACTIONS = [
+    { id: 'add', icon: 'plus', label: 'Add Expense' },
+    { id: 'scan', icon: 'camera', label: 'Scan Receipt' },
+    { id: 'reports', icon: 'chart-arc', label: 'Reports' },
+    { id: 'projects', icon: 'folder-text', label: 'Projects' },
+  ];
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Top Welcome Header */}
-{/* Top Welcome Header */}
-    <View style={styles.topHeader}>
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => navigation.getParent('LeftDrawer')?.openDrawer()}
-        style={[styles.bellContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
-      >
-        <MaterialCommunityIcons name="menu" size={24} color={colors.text} />
-      </TouchableOpacity>
-
-      <View style={{ flex: 1, marginHorizontal: spacing.md }}>
-        <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-          {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}! 👋
-        </Text>
-        <Text style={[styles.dateRange, { color: colors.text }]}>
-          {new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-        </Text>
-      </View>
-
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => showToast("No new notifications.", "info")}
-        style={[styles.bellContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
-      >
-        <MaterialCommunityIcons name="bell-badge-outline" size={24} color={colors.text} />
-      </TouchableOpacity>
-    </View>
-
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* HORIZONTAL SUMMARY CARD ROW */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.summaryRow}
-          decelerationRate="fast"
-          snapToInterval={280}
-        >
-          {/* Card 1: Total Spent */}
-          <Card style={styles.summaryCard} elevation="medium">
-            <View style={styles.summaryHeader}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Total Spent</Text>
-              <MaterialCommunityIcons name="currency-inr" size={20} color={colors.primary} />
-            </View>
-            <Text style={[styles.summaryVal, { color: colors.text }]}>
-              {formatINR(displayTotalSpent)}
-            </Text>
-            <Text style={[styles.summaryChange, { color: colors.success }]}>
-              ↓ 12% vs last month
-            </Text>
-          </Card>
-
-          {/* Card 2: Remaining Budget */}
-          <Card style={styles.summaryCard} elevation="medium">
-            <View style={styles.summaryHeader}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Remaining Budget</Text>
-              <MaterialCommunityIcons name="wallet-membership" size={20} color={colors.success} />
-            </View>
-            <Text style={[styles.summaryVal, { color: colors.text }]}>
-              {formatINR(remainingBudget)}
-            </Text>
-            {/* Horizontal mini Progress indicator */}
-            <ProgressBar
-              progress={consumedPercent}
-              color={consumedPercent > 0.8 ? colors.error : consumedPercent > 0.6 ? colors.warning : colors.success}
-              style={styles.summaryProgress}
-            />
-            <Text style={[styles.summaryPercentLabel, { color: colors.textSecondary }]}>
-              {Math.round(consumedPercent * 100)}% consumed
-            </Text>
-          </Card>
-
-          {/* Card 3: Expenses count */}
-          <Card style={styles.summaryCard} elevation="medium">
-            <View style={styles.summaryHeader}>
-              <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>Logged Count</Text>
-              <MaterialCommunityIcons name="file-document-outline" size={20} color={colors.secondary} />
-            </View>
-            <Text style={[styles.summaryVal, { color: colors.text }]}>
-              {currentMonthExpenses.length} bills
-            </Text>
-            <Text style={[styles.summaryChange, { color: colors.textSecondary }]}>
-              Updated just now
-            </Text>
-          </Card>
-        </ScrollView>
-
-        {/* AI QUICK INPUT BAR */}
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F5F7' }]}>
+      {/* Top Bar */}
+      <View style={styles.topHeader}>
         <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => navigation.navigate('AIChat')}
-          style={[styles.aiBar, { backgroundColor: colors.card, borderColor: colors.border }]}
+          activeOpacity={0.7}
+          onPress={() => navigation.getParent('LeftDrawer')?.openDrawer()}
+          style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
         >
-          <MaterialCommunityIcons name="auto-fix" size={22} color={colors.primary} />
-          <Text style={[styles.aiText, { color: colors.textSecondary }]}>
-            Tell XpenZ what you spent...
-          </Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={handleMicPress} style={styles.micBtn}>
-            <MaterialCommunityIcons name="microphone" size={20} color={colors.primary} />
-          </TouchableOpacity>
+          <MaterialCommunityIcons name="menu" size={22} color={colors.text} />
         </TouchableOpacity>
 
-        {/* QUICK ACTION BUTTONS ROW */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleQuickAction('add')} style={styles.actionBtn}>
-            <View style={[styles.actionIconWrapper, { backgroundColor: '#e0e7ff' }]}>
-              <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.text }]}>Add Expense</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => showToast("No new notifications.", "info")}
+          style={[styles.iconBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+        >
+          <MaterialCommunityIcons name="bell-badge-outline" size={22} color={colors.text} />
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleQuickAction('scan')} style={styles.actionBtn}>
-            <View style={[styles.actionIconWrapper, { backgroundColor: '#dcfce7' }]}>
-              <MaterialCommunityIcons name="camera" size={22} color="#15803d" />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.text }]}>Scan Receipt</Text>
-          </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleQuickAction('reports')} style={styles.actionBtn}>
-            <View style={[styles.actionIconWrapper, { backgroundColor: '#fef3c7' }]}>
-              <MaterialCommunityIcons name="chart-arc" size={22} color="#b45309" />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.text }]}>Reports</Text>
-          </TouchableOpacity>
+        {/* ROW 1: Large — Total Spent + greeting */}
+        <BentoCard size="full" accent>
+          <Text style={[bentoText.label, { color: 'rgba(255,255,255,0.75)' }]}>Total Spent · This Month</Text>
+          <Text style={[bentoText.value, { color: '#ffffff', marginTop: 6 }]}>
+            {formatINR(displayTotalSpent)}
+          </Text>
+          <Text style={[bentoText.subtitle, { color: 'rgba(255,255,255,0.85)', marginTop: 6 }]}>
+            {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}! 👋 · {new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
+          </Text>
+        </BentoCard>
 
-          <TouchableOpacity activeOpacity={0.8} onPress={() => handleQuickAction('projects')} style={styles.actionBtn}>
-            <View style={[styles.actionIconWrapper, { backgroundColor: '#fee2e2' }]}>
-              <MaterialCommunityIcons name="folder-text" size={22} color="#b91c1c" />
-            </View>
-            <Text style={[styles.actionLabel, { color: colors.text }]}>Projects</Text>
-          </TouchableOpacity>
-        </View>
+        {/* ROW 2: Active Projects | AI Efficiency */}
+        <BentoRow>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Active Projects</Text>
+            <Text style={[bentoText.value, { color: colors.text, marginTop: 6 }]}>{projects.length}</Text>
+            <Text style={[bentoText.subtitle, { color: colors.textSecondary, marginTop: 6 }]}>Workspaces tracked</Text>
+          </BentoCard>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>AI Efficiency</Text>
+            <Text style={[bentoText.value, { color: colors.text, marginTop: 6 }]}>{aiEfficiencyPercent}%</Text>
+            <Text style={[bentoText.subtitle, { color: colors.textSecondary, marginTop: 6 }]}>Auto-logged via AI</Text>
+          </BentoCard>
+        </BentoRow>
 
-        {/* RECENT EXPENSES SECTION */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Expenses</Text>
-          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Expenses')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
-          </TouchableOpacity>
-        </View>
+        {/* ROW 3: Quick action chips */}
+        <BentoRow style={styles.actionsRow}>
+          {ACTIONS.map((action) => (
+            <BentoCard key={action.id} style={styles.actionChip}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleQuickAction(action.id)}
+                style={styles.actionChipInner}
+              >
+                <View style={[styles.actionIconWrapper, { backgroundColor: colors.primaryContainer }]}>
+                  <MaterialCommunityIcons name={action.icon} size={20} color={colors.primary} />
+                </View>
+                <Text style={[styles.actionLabel, { color: colors.text }]} numberOfLines={2}>
+                  {action.label}
+                </Text>
+              </TouchableOpacity>
+            </BentoCard>
+          ))}
+        </BentoRow>
 
-        {expenses.length === 0 ? (
-          <EmptyState
-            icon="receipt"
-            title="No Expenses Logged"
-            description="Log your first business expense by talking to XpenZ AI sidekick!"
-          />
-        ) : (
-          <View style={styles.listContainer}>
-            {expenses.slice(0, 5).map((expense) => (
-              <ExpenseCard
-                key={expense.id}
-                expense={expense}
-                onPress={() => navigation.navigate('Expenses', { screen: 'ExpenseDetail', params: { id: expense.id } })}
-              />
-            ))}
+        {/* AI quick input entry point */}
+        <BentoCard size="full" style={styles.aiCard}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('AIChat')}
+            style={styles.aiCardInner}
+          >
+            <MaterialCommunityIcons name="auto-fix" size={20} color={colors.primary} />
+            <Text style={[styles.aiText, { color: colors.textSecondary }]}>
+              Tell XpenZ what you spent...
+            </Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleMicPress} style={styles.micBtn}>
+              <MaterialCommunityIcons name="microphone" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </BentoCard>
+
+        {/* ROW 4: Large — Recent Expenses */}
+        <BentoCard size="full">
+          <View style={styles.cardHeaderRow}>
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Recent Expenses</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Expenses')}>
+              <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+            </TouchableOpacity>
           </View>
-        )}
 
-        {/* BUDGET OVERVIEW SECTION */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Budgets Tracker</Text>
+          {expenses.length === 0 ? (
+            <EmptyState
+              icon="receipt"
+              title="No Expenses Logged"
+              description="Log your first business expense by talking to XpenZ AI sidekick!"
+            />
+          ) : (
+            <View style={styles.listContainer}>
+              {expenses.slice(0, 5).map((expense) => (
+                <ExpenseCard
+                  key={expense.id}
+                  expense={expense}
+                  onPress={() => navigation.navigate('Expenses', { screen: 'ExpenseDetail', params: { id: expense.id } })}
+                />
+              ))}
+            </View>
+          )}
+        </BentoCard>
+
+        {/* ROW 5: Spending trend chart */}
+        <BentoCard size="full">
+          <Text style={[bentoText.label, { color: colors.textSecondary, marginBottom: spacing.md }]}>Spending Trend</Text>
+          <SpendingTrendChart />
+        </BentoCard>
+
+        {/* BUDGET OVERVIEW */}
+        <View style={styles.cardHeaderRow}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>Budgets Tracker</Text>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Budgets')}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>View All Budgets</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>View All</Text>
           </TouchableOpacity>
         </View>
 
@@ -253,24 +218,24 @@ export const DashboardScreen = ({ navigation }) => {
             description="Create categories limits to track overspending automatically."
           />
         ) : (
-          <View style={styles.budgetsOverviewContainer}>
-            {budgets.slice(0, 3).map((bud) => {
+          <BentoRow style={styles.budgetsWrap}>
+            {budgets.slice(0, 4).map((bud) => {
               const cat = getCategoryById(bud.category);
               const catExpenses = expenses.filter(e => e.category === bud.category);
               const spentAmount = catExpenses.reduce((sum, e) => sum + e.amount, 0);
               const ratio = Math.min(1.0, spentAmount / bud.amount);
-              
+
               return (
-                <Card key={bud.id} style={styles.budgetOverviewCard} elevation="light">
+                <BentoCard key={bud.id} size="half">
                   <View style={styles.budgetHeader}>
                     <View style={styles.categoryNameRow}>
-                      <MaterialCommunityIcons name={cat.icon} size={20} color={cat.color} style={{ marginRight: spacing.sm }} />
-                      <Text style={[styles.budgetNameText, { color: colors.text }]}>{bud.name}</Text>
+                      <MaterialCommunityIcons name={cat.icon} size={18} color={cat.color} style={{ marginRight: spacing.sm }} />
+                      <Text style={[styles.budgetNameText, { color: colors.text }]} numberOfLines={1}>{bud.name}</Text>
                     </View>
-                    <Text style={[styles.budgetSpentText, { color: colors.text }]}>
-                      {formatINR(spentAmount)} / <Text style={{ color: colors.textSecondary }}>{formatINR(bud.amount)}</Text>
-                    </Text>
                   </View>
+                  <Text style={[styles.budgetSpentText, { color: colors.text }]}>
+                    {formatINR(spentAmount)} <Text style={{ color: colors.textSecondary }}>/ {formatINR(bud.amount)}</Text>
+                  </Text>
                   <ProgressBar
                     progress={ratio}
                     color={ratio > 0.8 ? colors.error : ratio > 0.6 ? colors.warning : colors.success}
@@ -280,14 +245,14 @@ export const DashboardScreen = ({ navigation }) => {
                     <View style={styles.warningRow}>
                       <MaterialCommunityIcons name="alert-circle-outline" size={14} color={colors.error} />
                       <Text style={[styles.warningText, { color: colors.error }]}>
-                        {ratio >= 1.0 ? '🚫 Budget exceeded limit!' : '⚠ Nearing limits (>80%)'}
+                        {ratio >= 1.0 ? '🚫 Exceeded!' : '⚠ Nearing limit'}
                       </Text>
                     </View>
                   )}
-                </Card>
+                </BentoCard>
               );
             })}
-          </View>
+          </BentoRow>
         )}
 
       </ScrollView>
@@ -303,90 +268,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 40 : 16,
     paddingBottom: spacing.md,
   },
-  greeting: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 2,
-    fontWeight: typography.weights.semibold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  dateRange: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xxl - 2,
-    fontWeight: typography.weights.bold,
-    marginTop: 2,
-  },
-  bellContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   scrollContent: {
+    paddingHorizontal: 16,
     paddingBottom: 84, // Space for Bottom Tab
   },
-  summaryRow: {
-    paddingLeft: spacing.xl,
-    paddingRight: spacing.sm,
-    paddingVertical: spacing.md,
-    gap: spacing.md,
-  },
-  summaryCard: {
-    width: 250,
-    padding: spacing.md + 2,
-  },
-  summaryHeader: {
+  cardHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
-  summaryLabel: {
+  seeAllText: {
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.xs + 1,
-    fontWeight: typography.weights.semibold,
-  },
-  summaryVal: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xxl - 2,
-    fontWeight: typography.weights.black,
-    marginBottom: spacing.xs,
-  },
-  summaryChange: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
   },
-  summaryProgress: {
-    height: 4,
-    borderRadius: 2,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+  actionsRow: {
+    marginBottom: 0,
   },
-  summaryPercentLabel: {
+  actionChip: {
+    width: '23%',
+    padding: 0,
+    marginBottom: 12,
+  },
+  actionChipInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+  },
+  actionIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs + 2,
+  },
+  actionLabel: {
     fontFamily: typography.fontFamily,
     fontSize: 10,
-    fontWeight: typography.weights.medium,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
   },
-  aiBar: {
+  aiCard: {
+    padding: 0,
+  },
+  aiCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.xl,
-    paddingVertical: spacing.md - 2,
-    paddingHorizontal: spacing.lg,
-    borderRadius: spacing.borderRadius.xl,
-    borderWidth: 1.5,
-    marginVertical: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   aiText: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
     marginLeft: spacing.sm,
     flex: 1,
@@ -394,62 +342,13 @@ const styles = StyleSheet.create({
   micBtn: {
     padding: spacing.xs,
   },
-  actionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: spacing.xl,
-    marginVertical: spacing.md,
-  },
-  actionBtn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  actionIconWrapper: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  actionLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs - 1,
-    fontWeight: typography.weights.bold,
-    textAlign: 'center',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-  },
-  seeAllText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.bold,
-  },
   listContainer: {
-    paddingHorizontal: spacing.xl,
-  },
-  budgetsOverviewContainer: {
-    paddingHorizontal: spacing.xl,
     gap: spacing.sm,
   },
-  budgetOverviewCard: {
-    padding: spacing.md,
+  budgetsWrap: {
+    flexWrap: 'wrap',
   },
   budgetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: spacing.sm,
   },
   categoryNameRow: {
@@ -458,13 +357,14 @@ const styles = StyleSheet.create({
   },
   budgetNameText: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },
   budgetSpentText: {
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.sm,
   },
   budgetProgress: {
     height: 6,

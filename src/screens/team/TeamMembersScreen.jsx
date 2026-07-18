@@ -2,22 +2,39 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 
 import * as profileApi from '../../api/profile';
+import useAuth from '../../hooks/useAuth';
 import useTheme from '../../hooks/useTheme';
+import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { bentoText } from '../../constants/bento';
 import { openAppDrawer } from '../../utils/navigation';
 
 // Custom elements
-import Card from '../../components/common/Card';
+import BentoCard from '../../components/common/BentoCard';
+import BentoRow from '../../components/common/BentoRow';
 import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 
+const ROLE_COLORS = {
+  admin: '#6C47FF',
+  owner: '#6C47FF',
+  member: '#22c55e',
+  viewer: '#f59e0b',
+};
+
+const getRoleColor = (role) => ROLE_COLORS[(role || '').toLowerCase()] || '#6C47FF';
+
 export const TeamMembersScreen = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const { user } = useAuth();
+  const showToast = useUiStore((state) => state.showToast);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,15 +61,25 @@ export const TeamMembersScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
+  const handleInvite = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!user?.organizationCode) {
+      showToast('No organization invite code available.', 'error');
+      return;
+    }
+    await Clipboard.setStringAsync(user.organizationCode);
+    showToast(`Invite code "${user.organizationCode}" copied to clipboard!`, 'success');
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F5F7' }]}>
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => openAppDrawer(navigation)}
-          style={styles.menuBtn}
+          style={[styles.menuBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <MaterialCommunityIcons name="menu" size={26} color={colors.text} />
+          <MaterialCommunityIcons name="menu" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Team Members</Text>
         <View style={{ width: 40 }} />
@@ -63,6 +90,26 @@ export const TeamMembersScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary} />}
       >
+        {/* ROW 1: Org card */}
+        <BentoCard size="full" accent style={styles.orgCard}>
+          <View style={styles.orgRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[bentoText.label, { color: 'rgba(255,255,255,0.75)' }]}>Organization</Text>
+              <Text style={[styles.orgName, { color: '#ffffff' }]} numberOfLines={1}>
+                {user?.organizationName || 'Your Organization'}
+              </Text>
+              <Text style={[bentoText.subtitle, { color: 'rgba(255,255,255,0.85)', marginTop: 4 }]}>
+                {members.length} {members.length === 1 ? 'member' : 'members'}
+              </Text>
+            </View>
+            <TouchableOpacity activeOpacity={0.85} onPress={handleInvite} style={styles.inviteBtn}>
+              <MaterialCommunityIcons name="account-plus-outline" size={16} color={colors.primary} style={{ marginRight: 4 }} />
+              <Text style={[styles.inviteBtnText, { color: colors.primary }]}>Invite</Text>
+            </TouchableOpacity>
+          </View>
+        </BentoCard>
+
+        {/* ROW 2+: Member cards, 2 per row */}
         {loading ? (
           <SkeletonCardList count={4} />
         ) : error ? (
@@ -81,24 +128,37 @@ export const TeamMembersScreen = ({ navigation }) => {
             icon="account-group-outline"
             title="No Team Members Yet"
             description="Invite colleagues to your organization to see them here."
+            actionTitle="Copy Invite Code"
+            onActionPress={handleInvite}
           />
         ) : (
-          <View style={styles.memberList}>
-            {members.map((member) => (
-              <Card key={member.id || member.email} style={styles.memberCard} elevation="light">
-                <Avatar size={48} name={member.fullName || member.email} source={member.avatar || undefined} />
-                <View style={styles.memberInfo}>
+          <BentoRow style={styles.membersWrap}>
+            {members.map((member) => {
+              const roleColor = getRoleColor(member.role);
+              return (
+                <BentoCard key={member.id || member.email} size="half" style={styles.memberCard}>
+                  <Avatar
+                    size={44}
+                    name={member.fullName || member.email}
+                    source={member.avatar || undefined}
+                    color={roleColor}
+                  />
                   <Text style={[styles.memberName, { color: colors.text }]} numberOfLines={1}>
                     {member.fullName || member.email}
                   </Text>
                   <Text style={[styles.memberEmail, { color: colors.textSecondary }]} numberOfLines={1}>
                     {member.email}
                   </Text>
-                </View>
-                <Badge text={(member.role || 'Member').toUpperCase()} variant="primary" />
-              </Card>
-            ))}
-          </View>
+                  <Badge
+                    text={(member.role || 'Member').toUpperCase()}
+                    variant="neutral"
+                    style={[styles.roleBadge, { backgroundColor: `${roleColor}18` }]}
+                    textStyle={{ color: roleColor }}
+                  />
+                </BentoCard>
+              );
+            })}
+          </BentoRow>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -113,7 +173,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: spacing.md,
   },
@@ -123,6 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   headerTitle: {
     fontFamily: typography.fontFamily,
@@ -130,33 +191,57 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   scrollContent: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: spacing.md,
     paddingBottom: 48,
   },
-  memberList: {
-    gap: spacing.md,
+  orgCard: {
+    marginBottom: 12,
   },
-  memberCard: {
+  orgRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md + 2,
+    justifyContent: 'space-between',
   },
-  memberInfo: {
-    flex: 1,
-    marginLeft: spacing.md,
-    marginRight: spacing.sm,
+  orgName: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    marginTop: 4,
+  },
+  inviteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+  },
+  inviteBtnText: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.bold,
+  },
+  membersWrap: {
+    flexWrap: 'wrap',
+  },
+  memberCard: {
+    width: '48.5%',
   },
   memberName: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
-    marginBottom: 2,
+    marginTop: spacing.sm,
   },
   memberEmail: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 1,
+    fontSize: 11,
     fontWeight: typography.weights.medium,
+    marginBottom: spacing.sm,
+  },
+  roleBadge: {
+    alignSelf: 'flex-start',
   },
 });
 export default TeamMembersScreen;

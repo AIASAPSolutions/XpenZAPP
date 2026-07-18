@@ -12,7 +12,7 @@ import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatINR } from '../../utils/currency';
-import Card from '../../components/common/Card';
+import BentoCard from '../../components/common/BentoCard';
 import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 
@@ -206,7 +206,7 @@ export const AIChatScreen = ({ navigation, route }) => {
 
                   {/* RENDER EXPENSE CONFIRMATION CARD IF DISPATCHED */}
                   {isAi && msg.expenseConfirmation && (
-                    <Card style={[styles.confirmCard, { borderColor: colors.border }]} elevation="medium">
+                    <BentoCard style={styles.confirmCard}>
                       <View style={styles.confirmHeader}>
                         <Badge text="AI PARSED RECEIPT ✨" variant="primary" />
                         <Text style={[styles.confirmAmount, { color: colors.text }]}>
@@ -253,7 +253,7 @@ export const AIChatScreen = ({ navigation, route }) => {
                           <Text style={[styles.actionBtnText, { color: '#ffffff' }]}>Confirm ✓</Text>
                         </TouchableOpacity>
                       </View>
-                    </Card>
+                    </BentoCard>
                   )}
                   
                   <Text style={[styles.timeText, { color: colors.textSecondary }]}>
@@ -434,14 +434,19 @@ const styles = StyleSheet.create({
   bubble: {
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
-    borderRadius: spacing.borderRadius.lg,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
   },
   bubbleAi: {
     borderWidth: 1,
-    borderTopLeftRadius: 0,
+    borderTopLeftRadius: 4,
   },
   bubbleUser: {
-    borderTopRightRadius: 0,
+    borderTopRightRadius: 4,
   },
   bubbleText: {
     fontFamily: typography.fontFamily,
@@ -471,8 +476,7 @@ const styles = StyleSheet.create({
   },
   confirmCard: {
     marginTop: spacing.md,
-    padding: spacing.md,
-    borderWidth: 1,
+    marginBottom: 0,
   },
   confirmHeader: {
     flexDirection: 'row',
@@ -514,7 +518,7 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: spacing.borderRadius.md,
+    borderRadius: 14,
     gap: spacing.xs,
   },
   editBtn: {
@@ -557,7 +561,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderTopWidth: 1.5,
+    borderTopWidth: 1,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   inputIconBtn: {
     padding: spacing.sm,
@@ -566,7 +572,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderWidth: 1,
-    borderRadius: spacing.borderRadius.md,
+    borderRadius: 16,
     paddingHorizontal: spacing.md,
     marginHorizontal: spacing.xs,
     fontSize: typography.sizes.sm + 1,

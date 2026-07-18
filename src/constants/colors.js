@@ -1,34 +1,34 @@
 export const colors = {
-  primary: '#3730a3',      // Indigo dark
+  primary: '#6C47FF',      // Bento accent purple
   secondary: '#6366f1',    // Indigo light
   accent: '#a5b4fc',       // Accent indigo
   success: '#22c55e',      // Green
   warning: '#f59e0b',      // Amber
   error: '#ef4444',        // Red
-  
+
   light: {
-    background: '#f8fafc',
-    surface: '#ffffff',
-    card: '#ffffff',
+    background: '#F5F5F7',
+    surface: '#FFFFFF',
+    card: '#FFFFFF',
     text: '#1e1b4b',       // Deep indigo text
     textSecondary: '#64748b', // Slate gray
-    border: '#e2e8f0',
-    primaryContainer: '#e0e7ff',
-    onPrimaryContainer: '#312e81',
+    border: 'rgba(0,0,0,0.06)',
+    primaryContainer: '#EDE7FF',
+    onPrimaryContainer: '#4B2E9E',
     divider: '#f1f5f9',
     glass: 'rgba(255, 255, 255, 0.8)',
-    shadow: 'rgba(55, 48, 163, 0.08)'
+    shadow: 'rgba(108, 71, 255, 0.08)'
   },
-  
+
   dark: {
-    background: '#0f0f1a', // Rich dark slate-navy
-    surface: '#16162a',
-    card: '#1c1c38',
+    background: '#0A0A0A',
+    surface: '#1C1C1E',
+    card: '#1C1C1E',
     text: '#f8fafc',       // Slate off-white
     textSecondary: '#94a3b8',
-    border: '#2e2e4a',
-    primaryContainer: '#1e1b4b',
-    onPrimaryContainer: '#c7d2fe',
+    border: 'rgba(255,255,255,0.06)',
+    primaryContainer: '#2E2154',
+    onPrimaryContainer: '#D6C9FF',
     divider: '#252538',
     glass: 'rgba(22, 22, 42, 0.8)',
     shadow: 'rgba(0, 0, 0, 0.4)'

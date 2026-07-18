@@ -4,7 +4,7 @@ import useTheme from '../../hooks/useTheme';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 
-export const Avatar = ({ source, name = '', size = 50, style }) => {
+export const Avatar = ({ source, name = '', size = 50, style, color }) => {
   const { colors } = useTheme();
 
   const getInitials = (fullName) => {
@@ -14,11 +14,13 @@ export const Avatar = ({ source, name = '', size = 50, style }) => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
+  const foregroundColor = color || colors.onPrimaryContainer;
+
   const containerStyle = {
     width: size,
     height: size,
     borderRadius: size / 2,
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: color ? `${color}22` : colors.primaryContainer,
   };
 
   if (source) {
@@ -36,7 +38,7 @@ export const Avatar = ({ source, name = '', size = 50, style }) => {
         style={[
           styles.initialsText,
           {
-            color: colors.onPrimaryContainer,
+            color: foregroundColor,
             fontSize: size * 0.4,
             fontWeight: typography.weights.bold,
           },

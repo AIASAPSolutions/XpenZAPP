@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,13 +9,13 @@ import useTheme from '../../hooks/useTheme';
 import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { bentoText } from '../../constants/bento';
 import { getCategoryById } from '../../constants/categories';
-import { formatCurrency, convertFromINR, getCurrencySymbol } from '../../utils/currency';
+import { formatCurrency, convertFromINR } from '../../utils/currency';
 
 // Custom elements
-import Card from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
-import Button from '../../components/common/Button';
+import BentoCard from '../../components/common/BentoCard';
+import BentoRow from '../../components/common/BentoRow';
 import Divider from '../../components/common/Divider';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import SpendingTrendChart from '../../components/reports/SpendingTrendChart';
@@ -27,7 +27,7 @@ const PERIODS = ['Week', 'Month', 'Quarter', 'Year'];
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
 
 export const ReportsScreen = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { expenses, fetchExpenses } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
 
@@ -52,6 +52,15 @@ export const ReportsScreen = ({ navigation }) => {
   const highestExpense = expenses.length > 0 ? Math.max(...expenses.map(e => e.amount)) : 0;
   const savingsPct = summary?.savingsChangePercent;
 
+  // Top category — computed from real expense data
+  const categoryTotals = expenses.reduce((acc, e) => {
+    acc[e.category] = (acc[e.category] || 0) + e.amount;
+    return acc;
+  }, {});
+  const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+  const topCategory = topCategoryEntry ? getCategoryById(topCategoryEntry[0]) : null;
+  const topCategoryAmount = topCategoryEntry ? topCategoryEntry[1] : 0;
+
   // AI-generated Insights
   const INSIGHTS = [
     { type: 'tip', icon: 'lightbulb-on-outline', color: '#f59e0b', text: "You spent 34% more on Swiggy Food this month than average." },
@@ -71,8 +80,8 @@ export const ReportsScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F5F7' }]}>
+
       <ScreenHeader
         navigation={navigation}
         title="Reports & Insights"
@@ -83,39 +92,12 @@ export const ReportsScreen = ({ navigation }) => {
             onPress={() => handleExport('pdf')}
             style={[styles.exportBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
           >
-            <MaterialCommunityIcons name="file-pdf-box" size={24} color={colors.primary} />
+            <MaterialCommunityIcons name="file-pdf-box" size={22} color={colors.primary} />
           </TouchableOpacity>
         )}
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* PERIOD SELECTOR CHIPS */}
-        <View style={[styles.selectorWrapper, { backgroundColor: colors.primaryContainer }]}>
-          {PERIODS.map(p => (
-            <TouchableOpacity
-              key={p}
-              activeOpacity={0.8}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setActivePeriod(p);
-              }}
-              style={[
-                styles.periodChip,
-                activePeriod === p && { backgroundColor: colors.primary }
-              ]}
-            >
-              <Text
-                style={[
-                  styles.periodText,
-                  { color: activePeriod === p ? '#ffffff' : colors.onPrimaryContainer }
-                ]}
-              >
-                {p}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         {/* CURRENCY SELECTOR */}
         <View style={styles.currencyWrapper}>
@@ -131,7 +113,7 @@ export const ReportsScreen = ({ navigation }) => {
                 }}
                 style={[
                   styles.currChip,
-                  { borderColor: colors.border },
+                  { borderColor: colors.border, backgroundColor: colors.card },
                   activeCurrency === c && { backgroundColor: colors.primaryContainer, borderColor: colors.primary }
                 ]}
               >
@@ -141,80 +123,105 @@ export const ReportsScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* SUMMARY STATS GRID */}
-        <View style={styles.statsGrid}>
-          <Card style={styles.statCell} elevation="light">
-            <Text style={[styles.cellLabel, { color: colors.textSecondary }]}>Total Volume</Text>
-            <Text style={[styles.cellVal, { color: colors.text }]}>{renderVal(totalSpent)}</Text>
-          </Card>
-
-          <Card style={styles.statCell} elevation="light">
-            <Text style={[styles.cellLabel, { color: colors.textSecondary }]}>Daily Average</Text>
-            <Text style={[styles.cellVal, { color: colors.text }]}>{renderVal(avgPerDay)}</Text>
-          </Card>
-
-          <Card style={styles.statCell} elevation="light">
-            <Text style={[styles.cellLabel, { color: colors.textSecondary }]}>Peak Expense</Text>
-            <Text style={[styles.cellVal, { color: colors.text }]}>{renderVal(highestExpense)}</Text>
-          </Card>
-        </View>
-
-        <Card style={styles.chartCard} elevation="medium">
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Spending Trends</Text>
-          <SpendingTrendChart />
-        </Card>
-
-        <Card style={styles.chartCard} elevation="medium">
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Category Donut</Text>
-          <CategoryDonutChart />
-        </Card>
-
-        {/* VISUAL SPENDING CATEGORY GRAPH (CUSTOM HIGH-FIDELITY SEGMENTS) */}
-        <Card style={styles.chartCard} elevation="medium">
-          <Text style={[styles.chartTitle, { color: colors.text }]}>Category Breakdowns</Text>
-          
-          <View style={styles.customChartWrapper}>
-            {expenses.slice(0, 4).map((e, idx) => {
-              const cat = getCategoryById(e.category);
-              const ratio = totalSpent > 0 ? e.amount / totalSpent : 0;
-              const percent = Math.round(ratio * 100);
-
-              return (
-                <View key={`ch-${idx}`} style={styles.chartProgressRow}>
-                  <View style={styles.progressLabelRow}>
-                    <View style={styles.progressIconName}>
-                      <MaterialCommunityIcons name={cat.icon} size={18} color={cat.color} style={{ marginRight: 6 }} />
-                      <Text style={[styles.progressCatName, { color: colors.text }]}>{cat.name}</Text>
-                    </View>
-                    <Text style={[styles.progressPercent, { color: colors.textSecondary }]}>
-                      {percent}% ({renderVal(e.amount)})
-                    </Text>
-                  </View>
-                  <View style={[styles.barBg, { backgroundColor: colors.border }]}>
-                    <View style={[styles.barActive, { backgroundColor: cat.color, width: `${percent}%` }]} />
-                  </View>
+        {/* ROW 1: Total Spent | Top Category */}
+        <BentoRow>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Total Spent</Text>
+            <Text style={[bentoText.value, { color: colors.text, marginTop: 6, fontSize: 22 }]} numberOfLines={1}>
+              {renderVal(totalSpent)}
+            </Text>
+          </BentoCard>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Top Category</Text>
+            {topCategory ? (
+              <>
+                <View style={styles.topCatRow}>
+                  <MaterialCommunityIcons name={topCategory.icon} size={18} color={topCategory.color} style={{ marginRight: 6 }} />
+                  <Text style={[styles.topCatName, { color: colors.text }]} numberOfLines={1}>{topCategory.name}</Text>
                 </View>
-              );
-            })}
-          </View>
-        </Card>
+                <Text style={[bentoText.subtitle, { color: colors.textSecondary, marginTop: 4 }]} numberOfLines={1}>
+                  {renderVal(topCategoryAmount)}
+                </Text>
+              </>
+            ) : (
+              <Text style={[bentoText.value, { color: colors.text, marginTop: 6, fontSize: 22 }]}>—</Text>
+            )}
+          </BentoCard>
+        </BentoRow>
 
-        {/* AI INSIGHTS MODULE */}
-        <View style={styles.insightsSection}>
-          <Text style={[styles.insightsTitle, { color: colors.text }]}>XpenZ AI Insights ✨</Text>
-          <View style={styles.insightsList}>
-            {INSIGHTS.map((ins, idx) => (
-              <Card key={`ins-${idx}`} style={[styles.insightCard, { borderColor: colors.border }]} elevation="light">
-                <MaterialCommunityIcons name={ins.icon} size={22} color={ins.color} style={{ marginRight: spacing.md }} />
-                <Text style={[styles.insightText, { color: colors.text }]}>{ins.text}</Text>
-              </Card>
+        {/* ROW 2: Category Donut */}
+        <BentoCard size="full">
+          <Text style={[bentoText.label, { color: colors.textSecondary, marginBottom: spacing.lg }]}>Category Breakdown</Text>
+          <CategoryDonutChart />
+        </BentoCard>
+
+        {/* ROW 3: Spending Trend + time filter pills */}
+        <BentoCard size="full">
+          <View style={styles.cardHeaderRow}>
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Spending Trends</Text>
+          </View>
+          <View style={[styles.selectorWrapper, { backgroundColor: colors.primaryContainer }]}>
+            {PERIODS.map(p => (
+              <TouchableOpacity
+                key={p}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setActivePeriod(p);
+                }}
+                style={[
+                  styles.periodChip,
+                  activePeriod === p && { backgroundColor: colors.primary }
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    { color: activePeriod === p ? '#ffffff' : colors.onPrimaryContainer }
+                  ]}
+                >
+                  {p}
+                </Text>
+              </TouchableOpacity>
             ))}
           </View>
+          <SpendingTrendChart />
+        </BentoCard>
+
+        {/* ROW 4: Avg/day | Biggest expense */}
+        <BentoRow>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Daily Average</Text>
+            <Text style={[bentoText.value, { color: colors.text, marginTop: 6, fontSize: 22 }]} numberOfLines={1}>
+              {renderVal(avgPerDay)}
+            </Text>
+          </BentoCard>
+          <BentoCard size="half">
+            <Text style={[bentoText.label, { color: colors.textSecondary }]}>Biggest Expense</Text>
+            <Text style={[bentoText.value, { color: colors.text, marginTop: 6, fontSize: 22 }]} numberOfLines={1}>
+              {renderVal(highestExpense)}
+            </Text>
+          </BentoCard>
+        </BentoRow>
+
+        {/* AI INSIGHTS MODULE */}
+        <View style={styles.cardHeaderRow}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>XpenZ AI Insights ✨</Text>
+        </View>
+        <View style={styles.insightsList}>
+          {INSIGHTS.map((ins, idx) => (
+            <BentoCard key={`ins-${idx}`} style={styles.insightCard}>
+              <MaterialCommunityIcons name={ins.icon} size={20} color={ins.color} style={{ marginRight: spacing.md }} />
+              <Text style={[styles.insightText, { color: colors.text }]}>{ins.text}</Text>
+            </BentoCard>
+          ))}
         </View>
 
         {/* TOP TRANSACTION LISTING (LIMIT 10) */}
-        <Text style={[styles.listTitle, { color: colors.text }]}>Top Expenses Mapped</Text>
-        <Card style={styles.topExpensesCard} elevation="light">
+        <View style={styles.cardHeaderRow}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>Top Expenses Mapped</Text>
+        </View>
+        <BentoCard size="full" style={styles.topExpensesCard}>
           {expenses.slice(0, 10).map((e, idx) => {
             const cat = getCategoryById(e.category);
             return (
@@ -233,7 +240,7 @@ export const ReportsScreen = ({ navigation }) => {
               </View>
             );
           })}
-        </Card>
+        </BentoCard>
 
       </ScrollView>
     </SafeAreaView>
@@ -244,61 +251,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingTop: 16,
-    paddingBottom: spacing.md,
-  },
-  title: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xxl - 2,
-    fontWeight: typography.weights.bold,
-  },
-  subtitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    marginTop: 2,
-  },
   exportBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   scrollContent: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: spacing.md,
     paddingBottom: 84, // Space for Bottom Tab
   },
-  selectorWrapper: {
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: spacing.borderRadius.md,
+  cardHeaderRow: {
     marginBottom: spacing.md,
-  },
-  periodChip: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: spacing.borderRadius.md - 2,
-  },
-  periodText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 1,
-    fontWeight: typography.weights.bold,
   },
   currencyWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   currencyLabel: {
     fontFamily: typography.fontFamily,
@@ -320,91 +293,43 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: typography.weights.bold,
   },
-  statsGrid: {
+  topCatRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.xl,
+    alignItems: 'center',
+    marginTop: 6,
   },
-  statCell: {
+  topCatName: {
+    fontFamily: typography.fontFamily,
+    fontSize: 18,
+    fontWeight: typography.weights.bold,
+    flexShrink: 1,
+  },
+  selectorWrapper: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: spacing.borderRadius.md,
+    marginBottom: spacing.md,
+  },
+  periodChip: {
     flex: 1,
-    padding: spacing.md - 2,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: spacing.borderRadius.md - 2,
   },
-  cellLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: 9,
-    fontWeight: typography.weights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  cellVal: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.black,
-  },
-  chartCard: {
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-  },
-  chartTitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    marginBottom: spacing.lg,
-  },
-  customChartWrapper: {
-    gap: spacing.md,
-  },
-  chartProgressRow: {
-    width: '100%',
-  },
-  progressLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  progressIconName: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressCatName: {
+  periodText: {
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.xs + 1,
     fontWeight: typography.weights.bold,
   },
-  progressPercent: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-  },
-  barBg: {
-    height: 8,
-    borderRadius: 4,
-    width: '100%',
-  },
-  barActive: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  insightsSection: {
-    marginBottom: spacing.xl,
-  },
-  insightsTitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    marginBottom: spacing.md,
-  },
   insightsList: {
     gap: spacing.sm,
+    marginBottom: spacing.md,
   },
   insightCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderWidth: 1.2,
+    padding: 14,
   },
   insightText: {
     fontFamily: typography.fontFamily,
@@ -412,12 +337,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     flex: 1,
     lineHeight: typography.lineHeights.xs + 2,
-  },
-  listTitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    marginBottom: spacing.md,
   },
   topExpensesCard: {
     padding: spacing.md,

@@ -10,21 +10,22 @@ import useTheme from '../../hooks/useTheme';
 import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { bentoText } from '../../constants/bento';
 import { categories } from '../../constants/categories';
 import { formatINR } from '../../utils/currency';
 import { groupExpensesByDate } from '../../utils/dateHelpers';
 
 // Custom elements
-import Card from '../../components/common/Card';
+import BentoCard from '../../components/common/BentoCard';
+import BentoRow from '../../components/common/BentoRow';
 import Divider from '../../components/common/Divider';
-import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import ExpenseCard from '../../components/expenses/ExpenseCard';
 import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
 
 export const ExpensesListScreen = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const {
     expenses,
     projects,
@@ -52,6 +53,23 @@ export const ExpensesListScreen = ({ navigation }) => {
 
   const filtered = getFilteredExpenses();
   const grouped = groupExpensesByDate(filtered);
+
+  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const thisMonthAmount = expenses
+    .filter((e) => {
+      const d = new Date(e.date);
+      const now = new Date();
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    })
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  const toggleQuickCategory = (catId) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const next = filters.categories.includes(catId)
+      ? filters.categories.filter((id) => id !== catId)
+      : [...filters.categories, catId];
+    setFilters({ categories: next });
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -164,19 +182,18 @@ export const ExpensesListScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F5F7' }]}>
       {/* HEADER SECTION */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => openAppDrawer(navigation)}
-            style={[styles.menuBtn, { borderColor: colors.border }]}
+            style={[styles.menuBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
           >
             <MaterialCommunityIcons name="menu" size={22} color={colors.text} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]}>Expenses</Text>
-          <Badge text={`${filtered.length} total`} variant="primary" style={styles.countBadge} />
         </View>
 
         <View style={styles.headerRight}>
@@ -186,18 +203,18 @@ export const ExpensesListScreen = ({ navigation }) => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setIsSearchExpanded(!isSearchExpanded);
             }}
-            style={[styles.headerBtn, { borderColor: colors.border }]}
+            style={[styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
           >
             <MaterialCommunityIcons name={isSearchExpanded ? "close" : "magnify"} size={22} color={colors.text} />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setIsFilterVisible(true);
             }}
-            style={[styles.headerBtn, { borderColor: colors.border }]}
+            style={[styles.headerBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
           >
             <MaterialCommunityIcons name="tune" size={22} color={colors.text} />
           </TouchableOpacity>
@@ -219,7 +236,51 @@ export const ExpensesListScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* MAIN EXPENSES FlatList GROUPED BY DATE */}
+      {/* ROW 1: Stats cards */}
+      <BentoRow style={styles.statsRow}>
+        <BentoCard size="third" style={styles.statCard}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>Total</Text>
+          <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>{formatINR(totalAmount)}</Text>
+        </BentoCard>
+        <BentoCard size="third" style={styles.statCard}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>This Month</Text>
+          <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>{formatINR(thisMonthAmount)}</Text>
+        </BentoCard>
+        <BentoCard size="third" style={styles.statCard}>
+          <Text style={[bentoText.label, { color: colors.textSecondary }]}>Count</Text>
+          <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>{expenses.length}</Text>
+        </BentoCard>
+      </BentoRow>
+
+      {/* ROW 2: Quick category filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.quickFilterScroll}
+      >
+        {categories.map((c) => {
+          const isSelected = filters.categories.includes(c.id);
+          return (
+            <TouchableOpacity
+              key={c.id}
+              activeOpacity={0.8}
+              onPress={() => toggleQuickCategory(c.id)}
+              style={[
+                styles.quickFilterChip,
+                { borderColor: colors.border, backgroundColor: colors.card },
+                isSelected && { backgroundColor: `${c.color}18`, borderColor: c.color }
+              ]}
+            >
+              <MaterialCommunityIcons name={c.icon} size={14} color={isSelected ? c.color : colors.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={[styles.quickFilterText, { color: isSelected ? c.color : colors.textSecondary }]}>
+                {c.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* ROW 3: Expense cards grouped by date */}
       {loading && expenses.length === 0 ? (
         <View style={styles.listScroll}>
           <SkeletonCardList count={5} />
@@ -242,7 +303,7 @@ export const ExpensesListScreen = ({ navigation }) => {
             <View style={styles.dateGroup}>
               {/* Relatives date title header */}
               <Text style={[styles.dateHeader, { color: colors.textSecondary }]}>{item.title}</Text>
-              
+
               {/* List of cards */}
               {item.data.map((expense) => (
                 <Swipeable
@@ -478,7 +539,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: spacing.md,
   },
@@ -493,16 +554,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 1,
   },
   title: {
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.xxl - 2,
     fontWeight: typography.weights.bold,
-  },
-  countBadge: {
-    paddingVertical: 2,
-    paddingHorizontal: spacing.sm,
   },
   headerRight: {
     flexDirection: 'row',
@@ -512,18 +569,18 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchBarWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.xl,
+    marginHorizontal: 16,
     paddingHorizontal: spacing.md,
     height: 48,
-    borderRadius: spacing.borderRadius.md,
-    borderWidth: 1.5,
+    borderRadius: 16,
+    borderWidth: 1,
     marginBottom: spacing.md,
   },
   searchInput: {
@@ -531,8 +588,38 @@ const styles = StyleSheet.create({
     height: '100%',
     fontSize: typography.sizes.sm + 1,
   },
+  statsRow: {
+    paddingHorizontal: 16,
+  },
+  statCard: {
+    padding: 14,
+  },
+  statValue: {
+    fontFamily: typography.fontFamily,
+    fontSize: 18,
+    fontWeight: typography.weights.bold,
+    marginTop: 4,
+  },
+  quickFilterScroll: {
+    paddingHorizontal: 16,
+    paddingBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  quickFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm - 2,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  quickFilterText: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.semibold,
+  },
   listScroll: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingBottom: 84, // Space for Bottom Tab
   },
   dateGroup: {

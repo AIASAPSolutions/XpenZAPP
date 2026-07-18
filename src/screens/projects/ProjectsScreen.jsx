@@ -10,18 +10,19 @@ import useTheme from '../../hooks/useTheme';
 import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
+import { bentoText } from '../../constants/bento';
 import { formatINR } from '../../utils/currency';
 
 // Custom elements
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
+import BentoCard from '../../components/common/BentoCard';
+import BentoRow from '../../components/common/BentoRow';
 import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
 
 export const ProjectsScreen = ({ navigation }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { projects, loading, fetchProjects, createProject } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
 
@@ -53,41 +54,42 @@ export const ProjectsScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0A0A0A' : '#F5F5F7' }]}>
+
       {/* HEADER SECTION */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => openAppDrawer(navigation)}
-          style={styles.menuBtn}
+          style={[styles.menuBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <MaterialCommunityIcons name="menu" size={26} color={colors.text} />
+          <MaterialCommunityIcons name="menu" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Projects Workspace</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Top welcome banner */}
-        <View style={styles.introBlock}>
-          <Text style={[styles.titleText, { color: colors.text }]}>Corporate Workspaces</Text>
-          <Text style={[styles.descText, { color: colors.textSecondary }]}>
-            Monitor expenditure and assign dedicated budgets to specific business projects.
-          </Text>
-        </View>
 
-        {/* Action create button */}
-        <Button
-          title="Initialize New Project"
-          onPress={handleCreateProject}
-          variant="outline"
-          icon={<MaterialCommunityIcons name="folder-plus-outline" size={20} color={colors.primary} />}
-          style={styles.createBtn}
-        />
+        {/* ROW 1: Large "New Project" card */}
+        <TouchableOpacity activeOpacity={0.85} onPress={handleCreateProject}>
+          <BentoCard size="full" accent style={styles.newProjectCard}>
+            <View style={styles.newProjectRow}>
+              <View>
+                <Text style={[bentoText.label, { color: 'rgba(255,255,255,0.75)' }]}>Corporate Workspaces</Text>
+                <Text style={[styles.newProjectTitle, { color: '#ffffff' }]}>Initialize New Project</Text>
+                <Text style={[bentoText.subtitle, { color: 'rgba(255,255,255,0.85)', marginTop: 4 }]}>
+                  Track expenditure with dedicated budgets
+                </Text>
+              </View>
+              <View style={styles.plusCircle}>
+                <MaterialCommunityIcons name="plus" size={26} color={colors.primary} />
+              </View>
+            </View>
+          </BentoCard>
+        </TouchableOpacity>
 
-        {/* LIST OF PROJECT CARDS */}
+        {/* ROW 2+: Project cards, 2 per row */}
         {loading && projects.length === 0 ? (
           <SkeletonCardList count={3} />
         ) : projects.length === 0 ? (
@@ -99,63 +101,58 @@ export const ProjectsScreen = ({ navigation }) => {
             onActionPress={handleCreateProject}
           />
         ) : (
-        <View style={styles.projectList}>
-          {projects.map((proj) => {
-            const ratio = proj.budget > 0 ? proj.totalSpent / proj.budget : 0;
-            const percentUsed = Math.round(ratio * 100);
+          <BentoRow style={styles.projectsWrap}>
+            {projects.map((proj) => {
+              const ratio = proj.budget > 0 ? proj.totalSpent / proj.budget : 0;
+              const percentUsed = Math.round(ratio * 100);
 
-            return (
-              <TouchableOpacity
-                key={proj.id}
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('ProjectDetail', { id: proj.id })}
-              >
-                <Card style={styles.projCard} elevation="light">
-                  <View style={styles.projHeader}>
-                    <View style={styles.nameRow}>
-                      <View style={[styles.dot, { backgroundColor: proj.color || colors.primary }]} />
-                      <Text style={[styles.projName, { color: colors.text }]}>{proj.name}</Text>
+              return (
+                <TouchableOpacity
+                  key={proj.id}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('ProjectDetail', { id: proj.id })}
+                  style={styles.projTouchable}
+                >
+                  <BentoCard style={styles.projCard}>
+                    <View style={styles.projHeader}>
+                      <View style={styles.nameRow}>
+                        <View style={[styles.dot, { backgroundColor: proj.color || colors.primary }]} />
+                        <Text style={[styles.projName, { color: colors.text }]} numberOfLines={1}>{proj.name}</Text>
+                      </View>
+                      <Badge text="Active" variant="success" />
                     </View>
-                    <Badge text={`${proj.expenseCount} logs`} variant="primary" />
-                  </View>
 
-                  <View style={styles.spentRow}>
-                    <View>
-                      <Text style={[styles.spentTitle, { color: colors.textSecondary }]}>Total Spent</Text>
-                      <Text style={[styles.spentAmount, { color: colors.text }]}>
-                        {formatINR(proj.totalSpent)}
-                      </Text>
-                    </View>
-                    
+                    <Text style={[styles.spentAmount, { color: colors.text }]}>
+                      {formatINR(proj.totalSpent)}
+                    </Text>
                     {proj.budget > 0 && (
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={[styles.spentTitle, { color: colors.textSecondary }]}>Project Budget</Text>
-                        <Text style={[styles.spentAmount, { color: colors.textSecondary }]}>
-                          {formatINR(proj.budget)}
+                      <Text style={[styles.budgetSubtitle, { color: colors.textSecondary }]}>
+                        of {formatINR(proj.budget)} budget
+                      </Text>
+                    )}
+
+                    {proj.budget > 0 && (
+                      <View style={styles.progressSection}>
+                        <ProgressBar
+                          progress={Math.min(1.0, ratio)}
+                          color={ratio > 0.8 ? colors.error : ratio > 0.6 ? colors.warning : colors.success}
+                          style={styles.progressBar}
+                        />
+                        <Text style={[styles.progressText, { color: colors.textSecondary }]}>
+                          {percentUsed}% used
                         </Text>
                       </View>
                     )}
-                  </View>
 
-                  {/* Progress Meter */}
-                  {proj.budget > 0 && (
-                    <View style={styles.progressSection}>
-                      <ProgressBar
-                        progress={Math.min(1.0, ratio)}
-                        color={ratio > 0.8 ? colors.error : ratio > 0.6 ? colors.warning : colors.success}
-                        style={styles.progressBar}
-                      />
-                      <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-                        {percentUsed}% consumed
-                      </Text>
+                    <View style={styles.logsRow}>
+                      <MaterialCommunityIcons name="receipt" size={13} color={colors.textSecondary} style={{ marginRight: 4 }} />
+                      <Text style={[styles.logsText, { color: colors.textSecondary }]}>{proj.expenseCount} logs</Text>
                     </View>
-                  )}
-
-                </Card>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  </BentoCard>
+                </TouchableOpacity>
+              );
+            })}
+          </BentoRow>
         )}
 
       </ScrollView>
@@ -171,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: spacing.md,
   },
@@ -181,6 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   headerTitle: {
     fontFamily: typography.fontFamily,
@@ -188,83 +186,94 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
   },
   scrollContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
+    paddingHorizontal: 16,
     paddingBottom: 48,
   },
-  introBlock: {
-    marginBottom: spacing.lg,
+  newProjectCard: {
+    marginBottom: 12,
   },
-  titleText: {
+  newProjectRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  newProjectTitle: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xl,
+    fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
-    marginBottom: spacing.xs,
+    marginTop: 4,
   },
-  descText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm,
-    lineHeight: typography.lineHeights.sm,
+  plusCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  createBtn: {
-    width: '100%',
-    marginBottom: spacing.xl,
+  projectsWrap: {
+    flexWrap: 'wrap',
   },
-  projectList: {
-    gap: spacing.md,
+  projTouchable: {
+    width: '48.5%',
   },
   projCard: {
-    padding: spacing.md + 2,
+    width: '100%',
   },
   projHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.xs,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: spacing.sm,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: spacing.xs,
   },
   projName: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
-  },
-  spentRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  spentTitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: 9,
-    fontWeight: typography.weights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
+    flexShrink: 1,
   },
   spentAmount: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
+    fontSize: 20,
     fontWeight: typography.weights.bold,
   },
+  budgetSubtitle: {
+    fontFamily: typography.fontFamily,
+    fontSize: 11,
+    fontWeight: typography.weights.medium,
+    marginBottom: spacing.sm,
+  },
   progressSection: {
-    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
   progressBar: {
-    height: 6,
+    height: 5,
     borderRadius: 3,
     marginBottom: 4,
   },
   progressText: {
+    fontFamily: typography.fontFamily,
+    fontSize: 10,
+    fontWeight: typography.weights.semibold,
+  },
+  logsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logsText: {
     fontFamily: typography.fontFamily,
     fontSize: 10,
     fontWeight: typography.weights.semibold,

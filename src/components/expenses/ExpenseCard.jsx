@@ -2,13 +2,11 @@ import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useTheme from '../../hooks/useTheme';
-import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { getCategoryById } from '../../constants/categories';
 import { formatINR } from '../../utils/currency';
 import { formatDate, formatTime } from '../../utils/dateHelpers';
-import Card from '../common/Card';
-import Badge from '../common/Badge';
+import BentoCard from '../common/BentoCard';
 
 export const ExpenseCard = ({ expense, onPress, style }) => {
   const { colors } = useTheme();
@@ -16,113 +14,66 @@ export const ExpenseCard = ({ expense, onPress, style }) => {
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={onPress}>
-      <Card style={[styles.card, style]} elevation="light">
-        <View style={styles.leftRow}>
-          {/* Circular icon colored by category */}
-          <View style={[styles.iconWrapper, { backgroundColor: `${cat.color}15` }]}>
-            <MaterialCommunityIcons name={cat.icon} size={24} color={cat.color} />
+      <BentoCard style={[styles.card, style]}>
+        <View style={styles.topRow}>
+          <View style={[styles.catChip, { backgroundColor: `${cat.color}18` }]}>
+            <MaterialCommunityIcons name={cat.icon} size={13} color={cat.color} style={{ marginRight: 4 }} />
+            <Text style={[styles.catChipText, { color: cat.color }]} numberOfLines={1}>{cat.name}</Text>
           </View>
-          
-          <View style={styles.details}>
-            <Text style={[styles.vendor, { color: colors.text }]} numberOfLines={1}>
-              {expense.vendor}
-            </Text>
-            <View style={styles.meta}>
-              <Text style={[styles.categoryLabel, { color: colors.textSecondary }]}>
-                {cat.name}
-              </Text>
-              {expense.project && (
-                <>
-                  <Text style={[styles.bullet, { color: colors.textSecondary }]}>•</Text>
-                  <Badge
-                    text="Project"
-                    variant="accent"
-                    style={styles.projectBadge}
-                    textStyle={{ fontSize: 9 }}
-                  />
-                </>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Right content containing amount and time */}
-        <View style={styles.rightColumn}>
-          <Text style={[styles.amount, { color: colors.text }]}>
-            {formatINR(expense.amount)}
-          </Text>
           <Text style={[styles.dateText, { color: colors.textSecondary }]}>
             {formatDate(expense.date, 'dd MMM')} • {formatTime(expense.date)}
           </Text>
         </View>
-      </Card>
+
+        <Text style={[styles.amount, { color: colors.text }]}>
+          {formatINR(expense.amount)}
+        </Text>
+
+        <Text style={[styles.vendor, { color: colors.textSecondary }]} numberOfLines={1}>
+          {expense.vendor}
+        </Text>
+      </BentoCard>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
+    padding: 14,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
-  leftRow: {
+  catChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    maxWidth: '55%',
   },
-  iconWrapper: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  details: {
-    flex: 1,
-  },
-  vendor: {
+  catChipText: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
-    marginBottom: 2,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  categoryLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 1,
-    fontWeight: typography.weights.medium,
-  },
-  bullet: {
-    marginHorizontal: spacing.xs,
     fontSize: 10,
-  },
-  projectBadge: {
-    paddingVertical: 1,
-    paddingHorizontal: spacing.xs,
-  },
-  rightColumn: {
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  amount: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
-    marginBottom: 4,
   },
   dateText: {
     fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs,
+    fontSize: 11,
+    fontWeight: typography.weights.medium,
+  },
+  amount: {
+    fontFamily: typography.fontFamily,
+    fontSize: 24,
+    fontWeight: typography.weights.bold,
+    marginBottom: 2,
+  },
+  vendor: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
   },
 });
