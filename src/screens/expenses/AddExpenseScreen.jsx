@@ -21,8 +21,12 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export const AddExpenseScreen = ({ route, navigation }) => {
   const { colors } = useTheme();
-  const { addExpense, updateExpense, parseReceiptImage } = useExpenses();
+  const { addExpense, updateExpense, parseReceiptImage, projects, fetchProjects } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
+
+  useEffect(() => {
+    if (!projects.length) fetchProjects();
+  }, []);
 
   const prefillData = route.params?.prefillData;
   const isEditing = !!prefillData;
@@ -47,6 +51,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
   const selectedCat = watch('category');
   const selectedMethod = watch('paymentMethod');
+  const selectedProject = watch('project');
 
   // Trigger OCR if passed via quick dashboard trigger
   useEffect(() => {
@@ -110,11 +115,15 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
     if (res.success && res.parsedData) {
       const parsed = res.parsedData;
-      setValue('amount', parsed.amount);
-      setValue('vendor', parsed.vendor);
-      setValue('category', parsed.category);
-      setValue('paymentMethod', parsed.paymentMethod || 'Card');
-      setValue('notes', parsed.notes || '');
+      if (parsed.amount !== undefined) setValue('amount', parsed.amount);
+      if (parsed.vendor !== undefined) setValue('vendor', parsed.vendor);
+      if (parsed.category !== undefined) setValue('category', parsed.category);
+      if (parsed.paymentMethod !== undefined) setValue('paymentMethod', parsed.paymentMethod);
+      if (parsed.notes !== undefined) setValue('notes', parsed.notes);
+      if (parsed.receiptUri) {
+        setReceiptUri(parsed.receiptUri);
+        setValue('receiptUri', parsed.receiptUri);
+      }
       setValue('isAiParsed', true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       showToast("Bill scanned! Form autofilled via XpenZ AI ?", "success");
@@ -262,21 +271,40 @@ export const AddExpenseScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Project tagging dropdown mock */}
-        <Controller
-          control={control}
-          name="project"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Associated Project (Optional)"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder="e.g., Client Pitch Alpha, App Relaunch"
-              icon="folder-outline"
-            />
+        {/* Project picker (from GET /projects) */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Associated Project</Text>
+          {projects.length === 0 ? (
+            <Text style={[styles.errorText, { color: colors.textSecondary }]}>
+              No project workspaces yet — create one from the Projects tab first.
+            </Text>
+          ) : (
+            <View style={styles.methodRow}>
+              {projects.map((p) => {
+                const isSelected = selectedProject === p.id;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setValue('project', p.id);
+                    }}
+                    style={[
+                      styles.methodChip,
+                      { borderColor: colors.border },
+                      isSelected && { backgroundColor: colors.primaryContainer, borderColor: colors.primary }
+                    ]}
+                  >
+                    <Text style={[styles.methodText, { color: colors.text }]} numberOfLines={1}>
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           )}
-        />
+        </View>
 
         {/* Notes memo text */}
         <Controller

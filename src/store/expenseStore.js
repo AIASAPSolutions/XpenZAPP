@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as expensesApi from '../api/expenses';
 import * as projectsApi from '../api/projects';
+import * as uploadApi from '../api/upload';
 import { useBudgetStore } from './budgetStore';
 
 const initialFilters = {
@@ -230,7 +231,7 @@ export const useExpenseStore = create((set, get) => ({
     }
   },
 
-  parseReceiptImage: async (imageUriOrBase64) => {
+  parseReceiptImage: async (imageUri) => {
     const projectId = resolveProjectId(get);
     if (!projectId) {
       return { success: false, error: 'Create a project before scanning receipts.' };
@@ -238,14 +239,18 @@ export const useExpenseStore = create((set, get) => ({
 
     set({ loading: true });
     try {
-      const { prepareReceiptForUpload } = await import('../utils/imageHelpers');
-      const receipt =
-        imageUriOrBase64?.startsWith?.('/') || imageUriOrBase64?.startsWith?.('file:')
-          ? await prepareReceiptForUpload(imageUriOrBase64)
-          : imageUriOrBase64;
-      const response = await expensesApi.parseReceipt(projectId, receipt);
+      const response = await uploadApi.uploadReceipt(imageUri, projectId);
+      const data = response.data || {};
+      const parsedData = {
+        amount: data.amount,
+        vendor: data.vendor || data.merchant,
+        category: data.category,
+        paymentMethod: data.payment_method || data.paymentMethod,
+        notes: data.notes,
+        receiptUri: data.receipt_url || data.url || data.file_url || imageUri,
+      };
       set({ loading: false });
-      return { success: true, parsedData: response.data };
+      return { success: true, parsedData };
     } catch (err) {
       set({ loading: false });
       return {

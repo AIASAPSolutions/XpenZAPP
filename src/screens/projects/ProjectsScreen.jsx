@@ -14,21 +14,15 @@ import { formatINR } from '../../utils/currency';
 
 // Custom elements
 import Card from '../../components/common/Card';
-import Avatar from '../../components/common/Avatar';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
+import EmptyState from '../../components/common/EmptyState';
+import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
-
-// Mock Team Members
-const TEAM_MEMBERS = [
-  { name: 'Rahul Sharma', avatar: '' },
-  { name: 'Priya Patel', avatar: '' },
-  { name: 'Amit Singh', avatar: '' }
-];
 
 export const ProjectsScreen = ({ navigation }) => {
   const { colors } = useTheme();
-  const { projects, fetchProjects, createProject } = useExpenses();
+  const { projects, loading, fetchProjects, createProject } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
 
   useEffect(() => {
@@ -94,6 +88,17 @@ export const ProjectsScreen = ({ navigation }) => {
         />
 
         {/* LIST OF PROJECT CARDS */}
+        {loading && projects.length === 0 ? (
+          <SkeletonCardList count={3} />
+        ) : projects.length === 0 ? (
+          <EmptyState
+            icon="folder-open-outline"
+            title="No Projects Yet"
+            description="Create your first project workspace to start tracking expenses."
+            actionTitle="+ New Project"
+            onActionPress={handleCreateProject}
+          />
+        ) : (
         <View style={styles.projectList}>
           {projects.map((proj) => {
             const ratio = proj.budget > 0 ? proj.totalSpent / proj.budget : 0;
@@ -146,26 +151,12 @@ export const ProjectsScreen = ({ navigation }) => {
                     </View>
                   )}
 
-                  {/* Team Members Mock list */}
-                  <View style={styles.teamSection}>
-                    <Text style={[styles.teamLabel, { color: colors.textSecondary }]}>Team Assigned:</Text>
-                    <View style={styles.avatarRow}>
-                      {TEAM_MEMBERS.map((mem, idx) => (
-                        <Avatar
-                          key={`mem-${idx}`}
-                          size={24}
-                          name={mem.name}
-                          style={[styles.avatarOverlap, { zIndex: 10 - idx, borderColor: colors.card }]}
-                        />
-                      ))}
-                    </View>
-                  </View>
-
                 </Card>
               </TouchableOpacity>
             );
           })}
         </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -277,28 +268,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: 10,
     fontWeight: typography.weights.semibold,
-  },
-  teamSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    paddingTop: spacing.md,
-  },
-  teamLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: 10,
-    fontWeight: typography.weights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  avatarRow: {
-    flexDirection: 'row',
-  },
-  avatarOverlap: {
-    marginLeft: -8,
-    borderWidth: 1.5,
   },
 });
 export default ProjectsScreen;

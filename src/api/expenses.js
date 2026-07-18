@@ -27,10 +27,3 @@ export const deleteExpense = async (projectId, id) => {
   const res = await request('delete', `/projects/${projectId}/expenses/${id}`);
   return { data: res.data };
 };
-
-export const parseReceipt = async (projectId, receiptData) => {
-  const res = await request('post', `/projects/${projectId}/expenses/parse-receipt`, receiptData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
-  return { data: res.data };
-};

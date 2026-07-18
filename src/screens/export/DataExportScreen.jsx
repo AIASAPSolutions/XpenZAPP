@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import { typography } from '../../constants/typography';
 import { openAppDrawer } from '../../utils/navigation';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import * as exportApi from '../../api/export';
+import { downloadAndShareExport } from '../../utils/exportDownload';
 
 const FORMATS = [
   { id: 'csv', label: 'CSV Spreadsheet', icon: 'file-delimited-outline', desc: 'All transactions for Excel / Sheets' },
@@ -22,15 +22,19 @@ const FORMATS = [
 export const DataExportScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const showToast = useUiStore((state) => state.showToast);
+  const [pendingFormat, setPendingFormat] = useState(null);
 
   const handleExport = async (format) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setPendingFormat(format);
     showToast(`Preparing ${format.toUpperCase()} export...`, 'success');
     try {
-      await exportApi.exportData(format);
-      showToast(`Export ready — ${format.toUpperCase()} download dispatched!`, 'success');
+      await downloadAndShareExport(format);
+      showToast(`Export ready — ${format.toUpperCase()} downloaded!`, 'success');
     } catch {
       showToast(`Failed to export ${format.toUpperCase()} data.`, 'error');
+    } finally {
+      setPendingFormat(null);
     }
   };
 
@@ -68,6 +72,8 @@ export const DataExportScreen = ({ navigation }) => {
               title={`Export ${fmt.label.split(' ')[0]}`}
               onPress={() => handleExport(fmt.id)}
               variant="primary"
+              loading={pendingFormat === fmt.id}
+              disabled={pendingFormat !== null}
               style={styles.exportBtn}
             />
           </Card>

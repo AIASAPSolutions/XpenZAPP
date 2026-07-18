@@ -22,6 +22,7 @@ import SettingsScreen from '../screens/profile/SettingsScreen';
 import ProjectsScreen from '../screens/projects/ProjectsScreen';
 import ProjectDetailScreen from '../screens/projects/ProjectDetailScreen';
 import DataExportScreen from '../screens/export/DataExportScreen';
+import TeamMembersScreen from '../screens/team/TeamMembersScreen';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -133,6 +134,16 @@ export const DrawerNavigator = () => {
           drawerLabel: 'Projects Hub',
           drawerIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="folder-open-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="TeamMembers"
+        component={TeamMembersScreen}
+        options={{
+          drawerLabel: 'Team Members',
+          drawerIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="account-group-outline" size={size} color={color} />
           ),
         }}
       />

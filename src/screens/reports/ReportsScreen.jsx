@@ -21,7 +21,7 @@ import ScreenHeader from '../../components/common/ScreenHeader';
 import SpendingTrendChart from '../../components/reports/SpendingTrendChart';
 import CategoryDonutChart from '../../components/reports/CategoryDonutChart';
 import * as reportsApi from '../../api/reports';
-import * as exportApi from '../../api/export';
+import { downloadAndShareExport } from '../../utils/exportDownload';
 
 const PERIODS = ['Week', 'Month', 'Quarter', 'Year'];
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
@@ -63,8 +63,8 @@ export const ReportsScreen = ({ navigation }) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(`Exporting analytical payload as ${format.toUpperCase()}...`, 'success');
     try {
-      await exportApi.exportData(format);
-      showToast(`Export ready — ${format.toUpperCase()} download dispatched!`, 'success');
+      await downloadAndShareExport(format);
+      showToast(`Export ready — ${format.toUpperCase()} downloaded!`, 'success');
     } catch {
       showToast(`Failed to export ${format.toUpperCase()} report.`, 'error');
     }

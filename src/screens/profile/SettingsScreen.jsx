@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -16,12 +16,12 @@ import Card from '../../components/common/Card';
 import Divider from '../../components/common/Divider';
 import Button from '../../components/common/Button';
 import { openAppDrawer } from '../../utils/navigation';
-import * as exportApi from '../../api/export';
+import { downloadAndShareExport } from '../../utils/exportDownload';
 
 export const SettingsScreen = ({ navigation }) => {
   const { colors, isDark } = useTheme();
   const { logout, biometricsEnabled, setBiometrics, defaultCurrency, setDefaultCurrency } = useAuth();
-  
+
   // Theme state controls
   const storeTheme = useUiStore((state) => state.theme);
   const setTheme = useUiStore((state) => state.setTheme);
@@ -30,6 +30,7 @@ export const SettingsScreen = ({ navigation }) => {
   // Notifications switches
   const [budgetAlerts, setBudgetAlerts] = React.useState(true);
   const [weeklySummary, setWeeklySummary] = React.useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const handleThemeChange = (selectedTheme) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -44,13 +45,17 @@ export const SettingsScreen = ({ navigation }) => {
   };
 
   const handleExportData = async () => {
+    if (exporting) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setExporting(true);
     showToast('Compiling full transactions data as CSV...', 'success');
     try {
-      await exportApi.exportCsv();
-      showToast('CSV export dispatched successfully!', 'success');
+      await downloadAndShareExport('csv');
+      showToast('CSV export downloaded successfully!', 'success');
     } catch {
       showToast('Failed to export CSV data.', 'error');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -224,10 +229,14 @@ export const SettingsScreen = ({ navigation }) => {
           <Divider />
 
           {/* Export */}
-          <TouchableOpacity activeOpacity={0.7} onPress={handleExportData} style={styles.clickableSettingRow}>
+          <TouchableOpacity activeOpacity={0.7} onPress={handleExportData} disabled={exporting} style={styles.clickableSettingRow}>
             <MaterialCommunityIcons name="database-export-outline" size={22} color={colors.textSecondary} style={{ marginRight: spacing.md }} />
             <Text style={[styles.rowLabel, { color: colors.text }]}>Export All Data (CSV Format)</Text>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+            {exporting ? (
+              <ActivityIndicator size="small" color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+            ) : (
+              <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
+            )}
           </TouchableOpacity>
 
           <Divider />

@@ -20,6 +20,7 @@ import Divider from '../../components/common/Divider';
 import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import ExpenseCard from '../../components/expenses/ExpenseCard';
+import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
 
 export const ExpensesListScreen = ({ navigation }) => {
@@ -27,6 +28,7 @@ export const ExpensesListScreen = ({ navigation }) => {
   const {
     expenses,
     projects,
+    loading,
     fetchExpenses,
     fetchProjects,
     getFilteredExpenses,
@@ -218,7 +220,11 @@ export const ExpensesListScreen = ({ navigation }) => {
       )}
 
       {/* MAIN EXPENSES FlatList GROUPED BY DATE */}
-      {grouped.length === 0 ? (
+      {loading && expenses.length === 0 ? (
+        <View style={styles.listScroll}>
+          <SkeletonCardList count={5} />
+        </View>
+      ) : grouped.length === 0 ? (
         <EmptyState
           icon="receipt"
           title="No Expenses Logged"

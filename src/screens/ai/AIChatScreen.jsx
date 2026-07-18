@@ -26,7 +26,7 @@ const CHIPS = [
 export const AIChatScreen = ({ navigation, route }) => {
   const { colors } = useTheme();
   const { messages, sendMessage, loading } = useAIChat();
-  const { addExpense } = useExpenses();
+  const { addExpense, projects, activeProjectId, setActiveProjectId } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
   const [inputText, setInputText] = useState('');
   const scrollViewRef = useRef(null);
@@ -123,6 +123,39 @@ export const AIChatScreen = ({ navigation, route }) => {
           <MaterialCommunityIcons name="chevron-down" size={28} color={colors.text} />
         </TouchableOpacity>
       </View>
+
+      {/* PROJECT CONTEXT SELECTOR */}
+      {projects.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.projectSelectorScroll, { borderBottomColor: colors.border }]}
+        >
+          {projects.map((p) => {
+            const isSelected = (activeProjectId || projects[0]?.id) === p.id;
+            return (
+              <TouchableOpacity
+                key={p.id}
+                activeOpacity={0.8}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setActiveProjectId(p.id);
+                }}
+                style={[
+                  styles.projectChip,
+                  { borderColor: colors.border },
+                  isSelected && { backgroundColor: colors.primaryContainer, borderColor: colors.primary }
+                ]}
+              >
+                <MaterialCommunityIcons name="folder-outline" size={14} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.projectChipText, { color: isSelected ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
+                  {p.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -338,6 +371,26 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: spacing.xs,
+  },
+  projectSelectorScroll: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  projectChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 1,
+    borderRadius: spacing.borderRadius.round,
+    borderWidth: 1.5,
+  },
+  projectChipText: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.bold,
+    maxWidth: 120,
   },
   messagesScroll: {
     paddingHorizontal: spacing.xl,

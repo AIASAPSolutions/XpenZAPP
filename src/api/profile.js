@@ -13,7 +13,7 @@ export const getOrganizationMembers = async () => {
 };
 
 export const updateProfile = async (profileData) => {
-  const res = await request('put', '/auth/profile', {
+  const res = await request('put', '/auth/me', {
     full_name: profileData.fullName || profileData.name,
     phone_number: profileData.phone || profileData.phone_number || undefined,
   });

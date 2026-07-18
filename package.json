@@ -22,6 +22,7 @@
     "expo-linear-gradient": "~56.0.4",
     "expo-notifications": "~56.0.17",
     "expo-secure-store": "~56.0.4",
+    "expo-sharing": "~56.0.22",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",
     "react": "19.2.3",
