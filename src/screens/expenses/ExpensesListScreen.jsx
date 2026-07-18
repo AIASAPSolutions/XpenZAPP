@@ -24,6 +24,18 @@ import ExpenseCard from '../../components/expenses/ExpenseCard';
 import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
 
+const CATEGORY_STYLES = {
+  'Food & Dining':   { icon: 'food-fork-drink',  color: '#FF6B6B', bg: '#FFF0F0' },
+  'Transport':       { icon: 'car',               color: '#4ECDC4', bg: '#F0FFFE' },
+  'Shopping':        { icon: 'shopping',          color: '#45B7D1', bg: '#F0F8FF' },
+  'Entertainment':   { icon: 'movie-open',        color: '#96CEB4', bg: '#F0FFF4' },
+  'Healthcare':      { icon: 'hospital-box',      color: '#FF6B9D', bg: '#FFF0F7' },
+  'Education':       { icon: 'school',            color: '#C3A6FF', bg: '#F8F0FF' },
+  'Utilities':       { icon: 'lightning-bolt',    color: '#FFD93D', bg: '#FFFBF0' },
+  'Travel':          { icon: 'airplane',          color: '#6C47FF', bg: '#F3F0FF' },
+  'Other':           { icon: 'dots-horizontal',   color: '#888888', bg: '#F5F5F5' },
+};
+
 export const ExpensesListScreen = ({ navigation }) => {
   const { colors, isDark } = useTheme();
   const {
@@ -43,6 +55,7 @@ export const ExpensesListScreen = ({ navigation }) => {
 
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // Filter form states
   const [selectedCats, setSelectedCats] = useState(filters.categories);
@@ -52,7 +65,10 @@ export const ExpensesListScreen = ({ navigation }) => {
   const [selectedProject, setSelectedProject] = useState(filters.project || '');
 
   const filtered = getFilteredExpenses();
-  const grouped = groupExpensesByDate(filtered);
+  const categoryFiltered = selectedCategory
+    ? filtered.filter((e) => (e.category || 'Other') === selectedCategory)
+    : filtered;
+  const grouped = groupExpensesByDate(categoryFiltered);
 
   const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
   const thisMonthAmount = expenses
@@ -252,33 +268,71 @@ export const ExpensesListScreen = ({ navigation }) => {
         </BentoCard>
       </BentoRow>
 
-      {/* ROW 2: Quick category filter chips */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.quickFilterScroll}
-      >
-        {categories.map((c) => {
-          const isSelected = filters.categories.includes(c.id);
+      {/* ROW 2: Category grid */}
+      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>CATEGORIES</Text>
+      <View style={styles.categoryGrid}>
+        {Object.entries(CATEGORY_STYLES).map(([name, style]) => {
+          const catExpenses = expenses.filter(e =>
+            (e.category || 'Other') === name
+          );
+          if (catExpenses.length === 0) return null;
+          const total = catExpenses.reduce((sum, e) =>
+            sum + (parseFloat(e.amount) || 0), 0
+          );
           return (
             <TouchableOpacity
-              key={c.id}
+              key={name}
+              style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setSelectedCategory(
+                  selectedCategory === name ? null : name
+                );
+              }}
               activeOpacity={0.8}
-              onPress={() => toggleQuickCategory(c.id)}
-              style={[
-                styles.quickFilterChip,
-                { borderColor: colors.border, backgroundColor: colors.card },
-                isSelected && { backgroundColor: `${c.color}18`, borderColor: c.color }
-              ]}
             >
-              <MaterialCommunityIcons name={c.icon} size={14} color={isSelected ? c.color : colors.textSecondary} style={{ marginRight: 4 }} />
-              <Text style={[styles.quickFilterText, { color: isSelected ? c.color : colors.textSecondary }]}>
-                {c.name}
-              </Text>
+              {/* Icon area - top */}
+              <View style={[
+                styles.categoryIconArea,
+                { backgroundColor: style.bg },
+                selectedCategory === name && {
+                  backgroundColor: style.color + '33'
+                }
+              ]}>
+                <MaterialCommunityIcons
+                  name={style.icon}
+                  size={36}
+                  color={style.color}
+                />
+                {selectedCategory === name && (
+                  <View style={[
+                    styles.selectedDot,
+                    { backgroundColor: style.color }
+                  ]} />
+                )}
+              </View>
+              {/* Text area - bottom */}
+              <View style={[styles.categoryTextArea, { backgroundColor: colors.card }]}>
+                <Text
+                  style={[styles.categoryCardName, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {name}
+                </Text>
+                <Text style={[
+                  styles.categoryCardAmount,
+                  { color: style.color }
+                ]}>
+                  {formatINR(total)}
+                </Text>
+                <Text style={[styles.categoryCardCount, { color: colors.textSecondary }]}>
+                  {catExpenses.length} expense{catExpenses.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
       {/* ROW 3: Expense cards grouped by date */}
       {loading && expenses.length === 0 ? (
@@ -600,23 +654,63 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     marginTop: 4,
   },
-  quickFilterScroll: {
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 10,
+    marginTop: 4,
     paddingHorizontal: 16,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
   },
-  quickFilterChip: {
+  categoryGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm - 2,
-    borderRadius: 999,
-    borderWidth: 1,
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+    paddingHorizontal: 16,
   },
-  quickFilterText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 1,
-    fontWeight: typography.weights.semibold,
+  categoryCard: {
+    width: '30.5%',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  categoryIconArea: {
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    position: 'relative',
+  },
+  selectedDot: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  categoryTextArea: {
+    padding: 8,
+  },
+  categoryCardName: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  categoryCardAmount: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 1,
+  },
+  categoryCardCount: {
+    fontSize: 9,
   },
   listScroll: {
     paddingHorizontal: 16,
