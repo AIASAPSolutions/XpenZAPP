@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
@@ -13,6 +14,7 @@ import { spacing } from '../../constants/spacing';
 import { typography } from '../../constants/typography';
 import { formatINR } from '../../utils/currency';
 import { getCategoryById } from '../../constants/categories';
+import * as reportsApi from '../../api/reports';
 
 // Custom elements
 import Card from '../../components/common/Card';
@@ -27,10 +29,12 @@ export const DashboardScreen = ({ navigation }) => {
   const { expenses, fetchExpenses } = useExpenses();
   const { budgets, fetchBudgets } = useBudgets();
   const showToast = useUiStore((state) => state.showToast);
+  const [overview, setOverview] = useState(null);
 
   useEffect(() => {
     fetchExpenses();
     fetchBudgets();
+    reportsApi.getAnalyticsOverview().then((res) => setOverview(res.data)).catch(() => {});
   }, []);
 
   // Compute Dashboard Metrics
@@ -41,6 +45,8 @@ export const DashboardScreen = ({ navigation }) => {
   });
 
   const totalSpentThisMonth = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+  // Prefer the backend analytics total when available, fall back to local sum
+  const displayTotalSpent = overview?.totalSpent ?? totalSpentThisMonth;
   const totalBudgeted = budgets.reduce((sum, b) => sum + b.amount, 0) || 97000;
   const remainingBudget = Math.max(0, totalBudgeted - totalSpentThisMonth);
   const consumedPercent = totalBudgeted > 0 ? (totalSpentThisMonth / totalBudgeted) : 0;
@@ -73,25 +79,35 @@ export const DashboardScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Top Welcome Header */}
-      <View style={styles.topHeader}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.textSecondary }]}>
-            {getGreeting()}, {user?.fullName?.split(' ')[0] || 'Rahul'}! 👋
-          </Text>
-          <Text style={[styles.dateRange, { color: colors.text }]}>
-            {new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
-          </Text>
-        </View>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => showToast("No new notifications.", "info")}
-          style={[styles.bellContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
-        >
-          <MaterialCommunityIcons name="bell-badge-outline" size={24} color={colors.text} />
-        </TouchableOpacity>
+{/* Top Welcome Header */}
+    <View style={styles.topHeader}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => navigation.getParent('LeftDrawer')?.openDrawer()}
+        style={[styles.bellContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
+      >
+        <MaterialCommunityIcons name="menu" size={24} color={colors.text} />
+      </TouchableOpacity>
+
+      <View style={{ flex: 1, marginHorizontal: spacing.md }}>
+        <Text style={[styles.greeting, { color: colors.textSecondary }]}>
+          {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}! 👋
+        </Text>
+        <Text style={[styles.dateRange, { color: colors.text }]}>
+          {new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' })}
+        </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => showToast("No new notifications.", "info")}
+        style={[styles.bellContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
+      >
+        <MaterialCommunityIcons name="bell-badge-outline" size={24} color={colors.text} />
+      </TouchableOpacity>
+    </View>
+
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* HORIZONTAL SUMMARY CARD ROW */}
         <ScrollView
@@ -108,7 +124,7 @@ export const DashboardScreen = ({ navigation }) => {
               <MaterialCommunityIcons name="currency-inr" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.summaryVal, { color: colors.text }]}>
-              {formatINR(totalSpentThisMonth)}
+              {formatINR(displayTotalSpent)}
             </Text>
             <Text style={[styles.summaryChange, { color: colors.success }]}>
               ↓ 12% vs last month
@@ -156,7 +172,7 @@ export const DashboardScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('AIChat')}
           style={[styles.aiBar, { backgroundColor: colors.card, borderColor: colors.border }]}
         >
-          <MaterialCommunityIcons name="sparkles" size={22} color={colors.primary} />
+          <MaterialCommunityIcons name="auto-fix" size={22} color={colors.primary} />
           <Text style={[styles.aiText, { color: colors.textSecondary }]}>
             Tell XpenZ what you spent...
           </Text>

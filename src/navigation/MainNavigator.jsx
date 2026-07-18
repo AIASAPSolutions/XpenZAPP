@@ -140,7 +140,7 @@ export const MainNavigator = () => {
         options={{
           tabBarLabel: '',
           tabBarIcon: () => (
-            <MaterialCommunityIcons name="sparkles" size={28} color="#ffffff" />
+            <MaterialCommunityIcons name="auto-fix" size={28} color="#ffffff" />
           ),
           tabBarButton: (props) => <CustomTabBarButton {...props} />,
         }}

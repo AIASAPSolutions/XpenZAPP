@@ -28,15 +28,20 @@ export const SplashScreen = ({ navigation }) => {
     ]).start();
 
     const timer = setTimeout(async () => {
-      const [onboardingDone, token] = await Promise.all([
-        SecureStore.getItemAsync('onboarding_complete'),
-        SecureStore.getItemAsync('user_token'),
-      ]);
-      if (token) {
+      try {
+        const [onboardingDone, token] = await Promise.all([
+          SecureStore.getItemAsync('onboarding_complete'),
+          SecureStore.getItemAsync('user_token'),
+        ]);
+        if (token) {
+          navigation.replace('Main');
+          return;
+        }
+        navigation.replace(onboardingDone === 'true' ? 'Login' : 'Onboarding');
+      } catch (e) {
+        console.warn('Splash error:', e);
         navigation.replace('Login');
-        return;
       }
-      navigation.replace(onboardingDone === 'true' ? 'Login' : 'Onboarding');
     }, 2500);
 
     return () => clearTimeout(timer);

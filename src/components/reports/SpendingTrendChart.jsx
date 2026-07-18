@@ -20,15 +20,10 @@ export const SpendingTrendChart = () => {
     let mounted = true;
     (async () => {
       try {
-        const res = await reportsApi.getReportsTrends();
+        const res = await reportsApi.getAnalyticsTrends(7);
         if (mounted) setTrends(res.data);
       } catch {
-        if (mounted) {
-          setTrends({
-            labels: ['W1', 'W2', 'W3', 'W4'],
-            data: [15000, 32000, 48000, 24000],
-          });
-        }
+        if (mounted) setTrends({ labels: [], data: [] });
       } finally {
         if (mounted) setLoading(false);
       }

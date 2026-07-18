@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';
@@ -127,9 +128,9 @@ export const BudgetsScreen = ({ navigation }) => {
           <EmptyState
             icon="wallet"
             title="No Category Budgets Set"
-            description="Control category expenditures by setting alert thresholds!"
-            actionTitle="+ New Budget"
-            onActionPress={() => navigation.navigate('CreateBudget')}
+            description="Budgets are managed automatically via AI Chat"
+            actionTitle="Open AI Chat"
+            onActionPress={() => navigation.navigate('AIChat')}
           />
         ) : (
           <View style={styles.budgetsList}>

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, View, Text, ScrollView, Dimensions, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Button from '../../components/common/Button';

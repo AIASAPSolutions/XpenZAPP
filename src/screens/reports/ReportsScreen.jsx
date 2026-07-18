@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -20,6 +21,7 @@ import ScreenHeader from '../../components/common/ScreenHeader';
 import SpendingTrendChart from '../../components/reports/SpendingTrendChart';
 import CategoryDonutChart from '../../components/reports/CategoryDonutChart';
 import * as reportsApi from '../../api/reports';
+import * as exportApi from '../../api/export';
 
 const PERIODS = ['Week', 'Month', 'Quarter', 'Year'];
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
@@ -35,7 +37,7 @@ export const ReportsScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchExpenses();
-    reportsApi.getReportsSummary().then((res) => setSummary(res.data)).catch(() => {});
+    reportsApi.getAnalyticsOverview().then((res) => setSummary(res.data)).catch(() => {});
   }, [fetchExpenses]);
 
   // Format amount values according to active currency selections
@@ -57,12 +59,15 @@ export const ReportsScreen = ({ navigation }) => {
     { type: 'warning', icon: 'alert-decagram-outline', color: '#ef4444', text: "AWS Utility hosting spike detected in Week 3." }
   ];
 
-  const handleExport = (format) => {
+  const handleExport = async (format) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(`Exporting analytical payload as ${format.toUpperCase()}...`, "success");
-    setTimeout(() => {
-      showToast(`Successfully dispatched download url!`, "success");
-    }, 1500);
+    showToast(`Exporting analytical payload as ${format.toUpperCase()}...`, 'success');
+    try {
+      await exportApi.exportData(format);
+      showToast(`Export ready — ${format.toUpperCase()} download dispatched!`, 'success');
+    } catch {
+      showToast(`Failed to export ${format.toUpperCase()} report.`, 'error');
+    }
   };
 
   return (

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity } from 'react-native';
+﻿import React, { useState } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -357,3 +357,4 @@ const styles = StyleSheet.create({
   },
 });
 export default CreateBudgetScreen;
+

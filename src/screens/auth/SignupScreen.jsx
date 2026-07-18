@@ -20,7 +20,7 @@ export const SignupScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const { signup, loading } = useAuth();
   const showToast = useUiStore((state) => state.showToast);
-  const [accountType, setAccountType] = useState('individual'); // 'individual' | 'organization'
+  const [accountType, setAccountType] = useState('individual');
   const [passwordInput, setPasswordInput] = useState('');
 
   const { control, handleSubmit, setValue, formState: { errors } } = useForm({
@@ -29,9 +29,12 @@ export const SignupScreen = ({ navigation }) => {
       accountType: 'individual',
       fullName: '',
       email: '',
+      phone: '',
+      subscriptionCode: '',
       password: '',
       confirmPassword: '',
       organizationName: '',
+      organizationCode: '',
       role: '',
       agreeTerms: false,
     }
@@ -43,7 +46,6 @@ export const SignupScreen = ({ navigation }) => {
     setValue('accountType', type);
   };
 
-  // Custom Password strength meter utility
   const getPasswordStrength = (pass) => {
     if (!pass) return { label: 'Empty', score: 0, color: colors.border };
     let score = 0;
@@ -52,7 +54,6 @@ export const SignupScreen = ({ navigation }) => {
     if (/[A-Z]/.test(pass)) score += 1;
     if (/[0-9]/.test(pass)) score += 1;
     if (/[^A-Za-z0-9]/.test(pass)) score += 1;
-
     if (score <= 2) return { label: 'Weak 🔴', score, color: colors.error };
     if (score <= 4) return { label: 'Good 🟡', score, color: colors.warning };
     return { label: 'Strong 💪🟢', score, color: colors.success };
@@ -62,10 +63,11 @@ export const SignupScreen = ({ navigation }) => {
 
   const onSubmit = async (data) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const result = await signup(data);
-    if (result.success) {
-      showToast("Account created successfully! Welcome to XpenZtrack.", "success");
-    } else {
+    const result = await signup({ ...data, accountType });
+    if (result.success && result.requiresOtp) {
+      showToast("OTP sent to your email!", "success");
+      navigation.navigate('OtpVerification', { email: data.email });
+    } else if (!result.success) {
       showToast(result.error, "error");
     }
   };
@@ -76,7 +78,6 @@ export const SignupScreen = ({ navigation }) => {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header Title */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
@@ -84,46 +85,29 @@ export const SignupScreen = ({ navigation }) => {
           </Text>
         </View>
 
-        {/* Tab Switcher: Individual vs Organization */}
         <View style={[styles.tabContainer, { backgroundColor: colors.primaryContainer }]}>
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handleAccountTypeChange('individual')}
-            style={[
-              styles.tabBtn,
-              accountType === 'individual' && { backgroundColor: colors.primary }
-            ]}
+            style={[styles.tabBtn, accountType === 'individual' && { backgroundColor: colors.primary }]}
           >
-            <Text
-              style={[
-                styles.tabText,
-                { color: accountType === 'individual' ? '#ffffff' : colors.onPrimaryContainer }
-              ]}
-            >
+            <Text style={[styles.tabText, { color: accountType === 'individual' ? '#ffffff' : colors.onPrimaryContainer }]}>
               Individual
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => handleAccountTypeChange('organization')}
-            style={[
-              styles.tabBtn,
-              accountType === 'organization' && { backgroundColor: colors.primary }
-            ]}
+            style={[styles.tabBtn, accountType === 'organization' && { backgroundColor: colors.primary }]}
           >
-            <Text
-              style={[
-                styles.tabText,
-                { color: accountType === 'organization' ? '#ffffff' : colors.onPrimaryContainer }
-              ]}
-            >
+            <Text style={[styles.tabText, { color: accountType === 'organization' ? '#ffffff' : colors.onPrimaryContainer }]}>
               Organization
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Forms Inputs */}
         <View style={styles.form}>
+
           <Controller
             control={control}
             name="fullName"
@@ -133,7 +117,7 @@ export const SignupScreen = ({ navigation }) => {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="e.g., Rahul Sharma"
+                placeholder="Rahul Sharma"
                 icon="account-outline"
                 error={errors.fullName?.message}
               />
@@ -149,7 +133,7 @@ export const SignupScreen = ({ navigation }) => {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder="e.g., rahul@asap.org"
+                placeholder="rahul@asap.org"
                 keyboardType="email-address"
                 icon="email-outline"
                 error={errors.email?.message}
@@ -158,7 +142,40 @@ export const SignupScreen = ({ navigation }) => {
             )}
           />
 
-          {/* Render extra organization inputs if Org Tab is selected */}
+          <Controller
+            control={control}
+            name="phone"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Mobile Number (Optional)"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="10-digit Indian mobile number"
+                keyboardType="phone-pad"
+                icon="phone-outline"
+                error={errors.phone?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="subscriptionCode"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Subscription Code"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder="Enter your subscription enrollment code"
+                icon="ticket-confirmation-outline"
+                error={errors.subscriptionCode?.message}
+                autoCapitalize="characters"
+              />
+            )}
+          />
+
           {accountType === 'organization' && (
             <>
               <Controller
@@ -170,9 +187,26 @@ export const SignupScreen = ({ navigation }) => {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="e.g., AI ASAP Solutions"
+                    placeholder="AI ASAP Solutions"
                     icon="office-building"
                     error={errors.organizationName?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={control}
+                name="organizationCode"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input
+                    label="Company Code (to join an org)"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    placeholder="e.g. C8D818D1"
+                    icon="office-building-outline"
+                    error={errors.organizationCode?.message}
+                    autoCapitalize="characters"
                   />
                 )}
               />
@@ -186,7 +220,7 @@ export const SignupScreen = ({ navigation }) => {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    placeholder="e.g., Finance Manager, Director"
+                    placeholder="Finance Manager, Director"
                     icon="card-account-details-outline"
                     error={errors.role?.message}
                   />
@@ -202,10 +236,7 @@ export const SignupScreen = ({ navigation }) => {
               <Input
                 label="Password"
                 value={value}
-                onChangeText={(text) => {
-                  onChange(text);
-                  setPasswordInput(text);
-                }}
+                onChangeText={(text) => { onChange(text); setPasswordInput(text); }}
                 onBlur={onBlur}
                 placeholder="Password (min 6 characters)"
                 secureTextEntry
@@ -216,7 +247,6 @@ export const SignupScreen = ({ navigation }) => {
             )}
           />
 
-          {/* Password strength indicator bar */}
           {passwordInput.length > 0 && (
             <View style={styles.strengthWrapper}>
               <View style={styles.strengthHeader}>
@@ -224,15 +254,7 @@ export const SignupScreen = ({ navigation }) => {
                 <Text style={[styles.strengthScore, { color: strength.color }]}>{strength.label}</Text>
               </View>
               <View style={[styles.strengthBarBg, { backgroundColor: colors.border }]}>
-                <View
-                  style={[
-                    styles.strengthBarActive,
-                    {
-                      backgroundColor: strength.color,
-                      width: `${(strength.score / 5) * 100}%`
-                    }
-                  ]}
-                />
+                <View style={[styles.strengthBarActive, { backgroundColor: strength.color, width: `${(strength.score / 5) * 100}%` }]} />
               </View>
             </View>
           )}
@@ -255,7 +277,6 @@ export const SignupScreen = ({ navigation }) => {
             )}
           />
 
-          {/* Terms checkbox */}
           <Controller
             control={control}
             name="agreeTerms"
@@ -276,15 +297,12 @@ export const SignupScreen = ({ navigation }) => {
                   </Text>
                 </TouchableOpacity>
                 {errors.agreeTerms && (
-                  <Text style={[styles.errorText, { color: colors.error }]}>
-                    {errors.agreeTerms.message}
-                  </Text>
+                  <Text style={[styles.errorText, { color: colors.error }]}>{errors.agreeTerms.message}</Text>
                 )}
               </View>
             )}
           />
 
-          {/* Create Button */}
           <Button
             title="Create Account"
             onPress={handleSubmit(onSubmit)}
@@ -294,7 +312,6 @@ export const SignupScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Redirect to Login */}
         <View style={styles.loginLinkWrapper}>
           <Text style={[styles.loginText, { color: colors.textSecondary }]}>Already have an account? </Text>
           <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Login')}>
@@ -307,117 +324,28 @@ export const SignupScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: 48,
-    paddingBottom: 48,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  title: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
-    textAlign: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: spacing.borderRadius.md,
-    marginBottom: spacing.xl,
-  },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: spacing.borderRadius.md - 2,
-  },
-  tabText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
-    fontWeight: typography.weights.bold,
-  },
-  form: {
-    width: '100%',
-  },
-  strengthWrapper: {
-    marginBottom: spacing.md,
-  },
-  strengthHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  strengthLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-  },
-  strengthScore: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.bold,
-  },
-  strengthBarBg: {
-    height: 6,
-    borderRadius: 3,
-    width: '100%',
-    overflow: 'hidden',
-  },
-  strengthBarActive: {
-    height: '100%',
-  },
-  termsWrapper: {
-    marginBottom: spacing.xl,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -8,
-  },
-  checkboxLabel: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm - 1,
-    fontWeight: typography.weights.medium,
-    flex: 1,
-  },
-  errorText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    marginTop: spacing.xs,
-    marginLeft: 24, // Indent error under checkbox label
-  },
-  submitBtn: {
-    width: '100%',
-    marginBottom: spacing.xl,
-  },
-  loginLinkWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loginText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
-    fontWeight: typography.weights.medium,
-  },
-  loginLink: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.sm + 1,
-    fontWeight: typography.weights.bold,
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: spacing.xl, paddingTop: 48, paddingBottom: 48 },
+  header: { alignItems: 'center', marginBottom: spacing.xl },
+  title: { fontFamily: typography.fontFamily, fontSize: typography.sizes.xxl, fontWeight: typography.weights.bold, marginBottom: spacing.xs },
+  subtitle: { fontFamily: typography.fontFamily, fontSize: typography.sizes.sm + 1, textAlign: 'center', paddingHorizontal: spacing.sm },
+  tabContainer: { flexDirection: 'row', padding: 4, borderRadius: spacing.borderRadius.md, marginBottom: spacing.xl },
+  tabBtn: { flex: 1, paddingVertical: spacing.md, alignItems: 'center', justifyContent: 'center', borderRadius: spacing.borderRadius.md - 2 },
+  tabText: { fontFamily: typography.fontFamily, fontSize: typography.sizes.sm + 1, fontWeight: typography.weights.bold },
+  form: { width: '100%' },
+  strengthWrapper: { marginBottom: spacing.md },
+  strengthHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+  strengthLabel: { fontFamily: typography.fontFamily, fontSize: typography.sizes.xs, fontWeight: typography.weights.medium },
+  strengthScore: { fontFamily: typography.fontFamily, fontSize: typography.sizes.xs, fontWeight: typography.weights.bold },
+  strengthBarBg: { height: 6, borderRadius: 3, width: '100%', overflow: 'hidden' },
+  strengthBarActive: { height: '100%' },
+  termsWrapper: { marginBottom: spacing.xl },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'center', marginLeft: -8 },
+  checkboxLabel: { fontFamily: typography.fontFamily, fontSize: typography.sizes.sm - 1, fontWeight: typography.weights.medium, flex: 1 },
+  errorText: { fontSize: typography.sizes.xs, fontWeight: typography.weights.medium, marginTop: spacing.xs, marginLeft: 24 },
+  submitBtn: { width: '100%', marginBottom: spacing.xl },
+  loginLinkWrapper: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  loginText: { fontFamily: typography.fontFamily, fontSize: typography.sizes.sm + 1, fontWeight: typography.weights.medium },
+  loginLink: { fontFamily: typography.fontFamily, fontSize: typography.sizes.sm + 1, fontWeight: typography.weights.bold },
 });
 export default SignupScreen;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, SafeAreaView, Alert, Modal } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 

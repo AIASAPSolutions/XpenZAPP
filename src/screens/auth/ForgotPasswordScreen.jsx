@@ -6,7 +6,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 import { forgotPasswordSchema } from '../../utils/validators';
-import * as authApi from '../../api/auth';
 import useTheme from '../../hooks/useTheme';
 import { useUiStore } from '../../store/uiStore';
 import { spacing } from '../../constants/spacing';
@@ -31,11 +30,9 @@ export const ForgotPasswordScreen = ({ navigation }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     try {
-      await authApi.forgotPassword(data.email);
-      setSuccess(true);
-      showToast("Reset instructions dispatched!", "success");
+      showToast('Password reset is not available yet. Contact your administrator.', 'info');
     } catch (e) {
-      showToast("Failed to initiate password reset request.", "error");
+      showToast('Failed to initiate password reset request.', 'error');
     } finally {
       setLoading(false);
     }

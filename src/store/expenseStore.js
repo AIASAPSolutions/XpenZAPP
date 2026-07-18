@@ -5,18 +5,27 @@ import { useBudgetStore } from './budgetStore';
 
 const initialFilters = {
   searchQuery: '',
-  dateRange: 'This Month', // 'This Week', 'This Month', 'Custom'
+  dateRange: 'This Month',
   customStartDate: null,
   customEndDate: null,
-  categories: [], // Multi-select
+  categories: [],
   amountRange: [0, 50000],
   project: '',
-  sortBy: 'Newest', // 'Newest', 'Oldest', 'Highest', 'Lowest'
+  sortBy: 'Newest',
+};
+
+const resolveProjectId = (get, expenseData = {}) => {
+  if (expenseData.project) return expenseData.project;
+  const { projects, activeProjectId } = get();
+  if (activeProjectId) return activeProjectId;
+  if (projects.length) return projects[0].id;
+  return null;
 };
 
 export const useExpenseStore = create((set, get) => ({
   expenses: [],
   projects: [],
+  activeProjectId: null,
   loading: false,
   error: null,
   offlineQueue: [],
@@ -31,12 +40,17 @@ export const useExpenseStore = create((set, get) => ({
 
     for (const op of queue) {
       try {
+        const projectId = op.projectId || resolveProjectId(get, op.payload);
+        if (!projectId) {
+          remaining.push(op);
+          continue;
+        }
         if (op.type === 'add') {
-          await expensesApi.addExpense(op.payload);
+          await expensesApi.addExpense(projectId, op.payload);
         } else if (op.type === 'update') {
-          await expensesApi.updateExpense(op.id, op.payload);
+          await expensesApi.updateExpense(projectId, op.id, op.payload);
         } else if (op.type === 'delete') {
-          await expensesApi.deleteExpense(op.id);
+          await expensesApi.deleteExpense(projectId, op.id);
         }
         synced += 1;
       } catch {
@@ -55,30 +69,59 @@ export const useExpenseStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       await get().syncOfflineQueue();
-      const response = await expensesApi.getExpenses();
-      set({ expenses: response.data, loading: false });
+
+      let projects = get().projects;
+      if (!projects.length) {
+        const projRes = await projectsApi.getProjects();
+        projects = projRes.data;
+        set({
+          projects,
+          activeProjectId: get().activeProjectId || projects[0]?.id || null,
+        });
+      }
+
+      if (!projects.length) {
+        set({ expenses: [], loading: false });
+        return;
+      }
+
+      const allExpenses = [];
+      for (const project of projects) {
+        const response = await expensesApi.getExpenses(project.id);
+        const tagged = (response.data || []).map((e) => ({
+          ...e,
+          project: e.project || project.id,
+        }));
+        allExpenses.push(...tagged);
+      }
+
+      set({ expenses: allExpenses, loading: false });
     } catch (err) {
       set({ error: 'Failed to stream expenses.', loading: false });
     }
   },
 
   addExpense: async (expenseData) => {
+    const projectId = resolveProjectId(get, expenseData);
+    if (!projectId) {
+      return { success: false, error: 'Create a project before logging expenses.' };
+    }
+
     const tempId = `exp-temp-${Date.now()}`;
     const newExpense = {
       id: tempId,
       ...expenseData,
+      project: projectId,
       date: expenseData.date instanceof Date ? expenseData.date.toISOString() : (expenseData.date || new Date().toISOString()),
     };
-    
-    // Optimistic UI Update: Prepend immediately
+
     const originalExpenses = [...get().expenses];
     set({ expenses: [newExpense, ...originalExpenses] });
 
     try {
-      const response = await expensesApi.addExpense(expenseData);
-      // Replace temp with actual response
+      const response = await expensesApi.addExpense(projectId, expenseData);
       set({
-        expenses: get().expenses.map(e => e.id === tempId ? response.data : e)
+        expenses: get().expenses.map((e) => (e.id === tempId ? { ...response.data, project: projectId } : e)),
       });
       get().fetchProjects();
       const category = response.data.category;
@@ -93,7 +136,7 @@ export const useExpenseStore = create((set, get) => ({
       set({
         offlineQueue: [
           ...get().offlineQueue,
-          { type: 'add', payload: expenseData, tempId, createdAt: new Date().toISOString() },
+          { type: 'add', payload: expenseData, projectId, tempId, createdAt: new Date().toISOString() },
         ],
       });
       return {
@@ -105,22 +148,28 @@ export const useExpenseStore = create((set, get) => ({
   },
 
   updateExpense: async (id, expenseData) => {
+    const existing = get().expenses.find((e) => e.id === id);
+    const projectId = resolveProjectId(get, { ...expenseData, project: existing?.project });
+    if (!projectId) {
+      return { success: false, error: 'Project not found for this expense.' };
+    }
+
     const originalExpenses = [...get().expenses];
     const updatedLocal = {
-      ...originalExpenses.find(e => e.id === id),
+      ...existing,
       ...expenseData,
+      project: projectId,
       date: expenseData.date instanceof Date ? expenseData.date.toISOString() : (expenseData.date || new Date().toISOString()),
     };
 
-    // Optimistic Update
     set({
-      expenses: get().expenses.map(e => e.id === id ? updatedLocal : e)
+      expenses: get().expenses.map((e) => (e.id === id ? updatedLocal : e)),
     });
 
     try {
-      const response = await expensesApi.updateExpense(id, expenseData);
+      const response = await expensesApi.updateExpense(projectId, id, expenseData);
       set({
-        expenses: get().expenses.map(e => e.id === id ? response.data : e)
+        expenses: get().expenses.map((e) => (e.id === id ? { ...response.data, project: projectId } : e)),
       });
       get().fetchProjects();
       return { success: true, expense: response.data };
@@ -131,15 +180,19 @@ export const useExpenseStore = create((set, get) => ({
   },
 
   deleteExpense: async (id) => {
+    const existing = get().expenses.find((e) => e.id === id);
+    const projectId = existing?.project || resolveProjectId(get);
+    if (!projectId) {
+      return { success: false, error: 'Project not found for this expense.' };
+    }
+
     const originalExpenses = [...get().expenses];
-    
-    // Optimistic Update
     set({
-      expenses: get().expenses.filter(e => e.id !== id)
+      expenses: get().expenses.filter((e) => e.id !== id),
     });
 
     try {
-      await expensesApi.deleteExpense(id);
+      await expensesApi.deleteExpense(projectId, id);
       get().fetchProjects();
       return { success: true };
     } catch (err) {
@@ -151,16 +204,26 @@ export const useExpenseStore = create((set, get) => ({
   fetchProjects: async () => {
     try {
       const response = await projectsApi.getProjects();
-      set({ projects: response.data });
+      set({
+        projects: response.data,
+        activeProjectId: get().activeProjectId || response.data[0]?.id || null,
+      });
     } catch (err) {
-      console.warn("Failed to load projects", err);
+      console.warn('Failed to load projects', err);
     }
   },
 
   createProject: async (projectName, projectBudget = 0) => {
     try {
-      const response = await projectsApi.createProject({ name: projectName, budget: projectBudget });
-      set({ projects: [...get().projects, response.data] });
+      const response = await projectsApi.createProject({
+        name: projectName,
+        budget: projectBudget,
+        description: '',
+      });
+      set({
+        projects: [...get().projects, response.data],
+        activeProjectId: get().activeProjectId || response.data.id,
+      });
       return { success: true, project: response.data };
     } catch (err) {
       return { success: false, error: 'Failed to create project' };
@@ -168,6 +231,11 @@ export const useExpenseStore = create((set, get) => ({
   },
 
   parseReceiptImage: async (imageUriOrBase64) => {
+    const projectId = resolveProjectId(get);
+    if (!projectId) {
+      return { success: false, error: 'Create a project before scanning receipts.' };
+    }
+
     set({ loading: true });
     try {
       const { prepareReceiptForUpload } = await import('../utils/imageHelpers');
@@ -175,17 +243,19 @@ export const useExpenseStore = create((set, get) => ({
         imageUriOrBase64?.startsWith?.('/') || imageUriOrBase64?.startsWith?.('file:')
           ? await prepareReceiptForUpload(imageUriOrBase64)
           : imageUriOrBase64;
-      const response = await expensesApi.parseReceipt(receipt);
+      const response = await expensesApi.parseReceipt(projectId, receipt);
       set({ loading: false });
       return { success: true, parsedData: response.data };
     } catch (err) {
       set({ loading: false });
       return {
         success: false,
-        error: err.message || 'AI Receipt scanner failed to parse receipt.',
+        error: err.response?.data?.message || err.message || 'AI Receipt scanner failed to parse receipt.',
       };
     }
   },
+
+  setActiveProjectId: (projectId) => set({ activeProjectId: projectId }),
 
   setFilters: (newFilters) => {
     set({ filters: { ...get().filters, ...newFilters } });
@@ -199,25 +269,25 @@ export const useExpenseStore = create((set, get) => ({
     const { expenses, filters } = get();
     let result = [...expenses];
 
-    // 1. Filter by Search Query (vendor or category)
     if (filters.searchQuery) {
       const q = filters.searchQuery.toLowerCase();
-      result = result.filter(e => 
-        e.vendor.toLowerCase().includes(q) || 
-        e.category.toLowerCase().includes(q) || 
-        (e.notes && e.notes.toLowerCase().includes(q))
+      result = result.filter(
+        (e) =>
+          e.vendor.toLowerCase().includes(q) ||
+          e.category.toLowerCase().includes(q) ||
+          (e.notes && e.notes.toLowerCase().includes(q))
       );
     }
 
-    // 2. Filter by Date Range
     const now = new Date();
-    result = result.filter(e => {
+    result = result.filter((e) => {
       const eDate = new Date(e.date);
       if (filters.dateRange === 'All' || !filters.dateRange) {
         return true;
       }
       if (filters.dateRange === 'This Week') {
-        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
         return eDate >= startOfWeek;
       }
@@ -231,20 +301,18 @@ export const useExpenseStore = create((set, get) => ({
       return true;
     });
 
-    // 3. Filter by Category multi-select
     if (filters.categories.length > 0) {
-      result = result.filter(e => filters.categories.includes(e.category));
+      result = result.filter((e) => filters.categories.includes(e.category));
     }
 
-    // 4. Filter by Amount Range
-    result = result.filter(e => e.amount >= filters.amountRange[0] && e.amount <= filters.amountRange[1]);
+    result = result.filter(
+      (e) => e.amount >= filters.amountRange[0] && e.amount <= filters.amountRange[1]
+    );
 
-    // 5. Filter by Project
     if (filters.project) {
-      result = result.filter(e => e.project === filters.project);
+      result = result.filter((e) => e.project === filters.project);
     }
 
-    // 6. Sort
     result.sort((a, b) => {
       if (filters.sortBy === 'Newest') return new Date(b.date) - new Date(a.date);
       if (filters.sortBy === 'Oldest') return new Date(a.date) - new Date(b.date);
@@ -254,5 +322,5 @@ export const useExpenseStore = create((set, get) => ({
     });
 
     return result;
-  }
+  },
 }));

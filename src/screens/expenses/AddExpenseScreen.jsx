@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TextInput, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Image } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -117,7 +117,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
       setValue('notes', parsed.notes || '');
       setValue('isAiParsed', true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast("Bill scanned! Form autofilled via XpenZ AI ✨", "success");
+      showToast("Bill scanned! Form autofilled via XpenZ AI ?", "success");
     } else {
       showToast(res.error || "Receipt scan failed.", "error");
     }
@@ -163,7 +163,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           {isEditing ? 'Edit Expense' : 'New Expense'}
         </Text>
-        <View style={{ width: 40 }} /> {/* Header spacer */}
+        <View style={{ width: 40 }} />
       </View>
 
       {ocrLoading && <LoadingSpinner fullScreen message="AI OCR reads invoice details..." />}
@@ -331,7 +331,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
           {receiptUri && (
             <Button
-              title="Parse with AI ✨"
+              title="Parse with AI ?"
               onPress={handleAiParsing}
               variant="outline"
               style={styles.parseBtn}
@@ -508,3 +508,4 @@ const styles = StyleSheet.create({
   },
 });
 export default AddExpenseScreen;
+

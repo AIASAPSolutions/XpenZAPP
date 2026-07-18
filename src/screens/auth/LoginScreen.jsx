@@ -34,20 +34,18 @@ export const LoginScreen = ({ navigation }) => {
   });
 
   const onSubmit = async (data) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    console.log('SUBMIT DATA:', JSON.stringify(data));
     const result = await login(data.email, data.password, data.rememberMe);
     if (result.success) {
-      showToast("Welcome back, Rahul!", "success");
+      showToast("Welcome back!", "success");
     } else {
       showToast(result.error, "error");
     }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleSSOLogin = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast("Google Sign-In simulation active.", "success");
-    // Mock login immediately
-    login('rahul@asap.org', 'password123');
+    showToast('SSO login coming soon. Contact your admin.', 'info');
   };
 
   return (
@@ -146,16 +144,16 @@ export const LoginScreen = ({ navigation }) => {
         <View style={styles.dividerWrapper}>
           <Divider />
           <Text style={[styles.dividerLabel, { color: colors.textSecondary, backgroundColor: colors.background }]}>
-            or continue with
+            OR CONTINUE WITH
           </Text>
         </View>
 
         {/* Google sign-in */}
         <Button
-          title="Sign in with Google"
-          onPress={handleGoogleSignIn}
+          title="SSO / Enterprise Login"
+          onPress={handleSSOLogin}
           variant="outline"
-          icon={<MaterialCommunityIcons name="google" size={20} color={colors.primary} />}
+          icon={<MaterialCommunityIcons name="office-building" size={20} color={colors.primary} />}
           style={styles.socialBtn}
         />
 

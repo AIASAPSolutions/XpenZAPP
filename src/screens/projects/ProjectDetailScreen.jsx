@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
 import * as Haptics from 'expo-haptics';

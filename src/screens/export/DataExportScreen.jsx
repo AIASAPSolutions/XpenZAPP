@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -10,6 +11,7 @@ import { typography } from '../../constants/typography';
 import { openAppDrawer } from '../../utils/navigation';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import * as exportApi from '../../api/export';
 
 const FORMATS = [
   { id: 'csv', label: 'CSV Spreadsheet', icon: 'file-delimited-outline', desc: 'All transactions for Excel / Sheets' },
@@ -21,12 +23,15 @@ export const DataExportScreen = ({ navigation }) => {
   const { colors } = useTheme();
   const showToast = useUiStore((state) => state.showToast);
 
-  const handleExport = (format) => {
+  const handleExport = async (format) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     showToast(`Preparing ${format.toUpperCase()} export...`, 'success');
-    setTimeout(() => {
-      showToast(`Export ready — download link simulated for ${format.toUpperCase()}`, 'success');
-    }, 1500);
+    try {
+      await exportApi.exportData(format);
+      showToast(`Export ready — ${format.toUpperCase()} download dispatched!`, 'success');
+    } catch {
+      showToast(`Failed to export ${format.toUpperCase()} data.`, 'error');
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -132,6 +133,20 @@ export const ProfileScreen = ({ navigation }) => {
               <Text style={[styles.itemVal, { color: colors.text }]}>{user?.memberSince || 'May 2025'}</Text>
             </View>
           </View>
+
+          {(user?.organizationCode || user?.inviteCode) ? (
+            <>
+              <Divider style={{ marginVertical: spacing.md }} />
+
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="ticket-confirmation-outline" size={22} color={colors.textSecondary} style={{ marginRight: spacing.md }} />
+                <View>
+                  <Text style={[styles.itemLabel, { color: colors.textSecondary }]}>Invite Code</Text>
+                  <Text style={[styles.itemVal, { color: colors.text }]}>{user?.organizationCode || user?.inviteCode}</Text>
+                </View>
+              </View>
+            </>
+          ) : null}
 
         </Card>
 

@@ -6,6 +6,7 @@ export const useExpenses = () => {
   return {
     expenses: store.expenses,
     projects: store.projects,
+    activeProjectId: store.activeProjectId,
     loading: store.loading,
     error: store.error,
     filters: store.filters,
@@ -15,6 +16,7 @@ export const useExpenses = () => {
     deleteExpense: store.deleteExpense,
     fetchProjects: store.fetchProjects,
     createProject: store.createProject,
+    setActiveProjectId: store.setActiveProjectId,
     parseReceiptImage: store.parseReceiptImage,
     setFilters: store.setFilters,
     resetFilters: store.resetFilters,

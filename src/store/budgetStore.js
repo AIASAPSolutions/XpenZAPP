@@ -1,68 +1,31 @@
 import { create } from 'zustand';
-import * as budgetsApi from '../api/budgets';
+
+// There is no standalone budgets endpoint — budgets are managed
+// server-side by budget_manager inside the AI chat flow.
+const BUDGETS_INFO_MESSAGE = 'Budgets are managed automatically via AI Chat';
 
 export const useBudgetStore = create((set, get) => ({
   budgets: [],
   loading: false,
   error: null,
+  infoMessage: BUDGETS_INFO_MESSAGE,
 
   fetchBudgets: async () => {
-    set({ loading: true, error: null });
-    try {
-      const response = await budgetsApi.getBudgets();
-      set({ budgets: response.data, loading: false });
-    } catch (err) {
-      set({ error: 'Failed to retrieve budgets.', loading: false });
-    }
+    set({ budgets: [], loading: false, error: null });
   },
 
-  createBudget: async (budgetData) => {
-    set({ loading: true });
-    try {
-      const response = await budgetsApi.createBudget(budgetData);
-      set({ budgets: [...get().budgets, response.data], loading: false });
-      return { success: true, budget: response.data };
-    } catch (err) {
-      set({ loading: false });
-      return { success: false, error: 'Failed to create budget limit.' };
-    }
-  },
+  createBudget: async () => ({ success: false, error: BUDGETS_INFO_MESSAGE }),
 
-  updateBudget: async (id, budgetData) => {
-    set({ loading: true });
-    try {
-      const response = await budgetsApi.updateBudget(id, budgetData);
-      set({
-        budgets: get().budgets.map(b => b.id === id ? response.data : b),
-        loading: false
-      });
-      return { success: true, budget: response.data };
-    } catch (err) {
-      set({ loading: false });
-      return { success: false, error: 'Failed to modify budget ceiling.' };
-    }
-  },
+  updateBudget: async () => ({ success: false, error: BUDGETS_INFO_MESSAGE }),
 
-  deleteBudget: async (id) => {
-    const originalBudgets = [...get().budgets];
-    set({
-      budgets: get().budgets.filter(b => b.id !== id)
-    });
-    try {
-      await budgetsApi.deleteBudget(id);
-      return { success: true };
-    } catch (err) {
-      set({ budgets: originalBudgets });
-      return { success: false, error: 'Failed to delete budget limit.' };
-    }
-  },
+  deleteBudget: async () => ({ success: false, error: BUDGETS_INFO_MESSAGE }),
 
   // Dynamic monitor that matches a category expense, checks if it crosses any thresholds,
   // and raises native OS alerts if needed
   checkBudgetThresholds: async (category, newExpenseAmount, currentCategoryTotal) => {
     const budgets = get().budgets;
     const categoryBudget = budgets.find(b => b.category === category);
-    
+
     if (!categoryBudget) return;
 
     const totalSpent = currentCategoryTotal + newExpenseAmount;

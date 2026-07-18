@@ -20,6 +20,8 @@ export const useAuth = () => {
     setDefaultCurrency: auth.setDefaultCurrency,
     checkAuth: auth.checkAuth,
     clearError: auth.clearError,
+    verifyOtp: auth.verifyOtp,
+    resendOtp: auth.resendOtp,
   };
 };
 export default useAuth;

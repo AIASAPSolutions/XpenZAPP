@@ -5,6 +5,6 @@ export const CONFIG = {
   VERSION: '1.0.0',
   DEFAULT_CURRENCY: 'INR',
   CURRENCY_SYMBOL: '₹',
-  BASE_URL: 'https://xpenztrack.win/api',
-  MOCK_MODE: true, // Auto-fallback toggler if server is offline
+  BASE_URL: 'https://api.xpenztrack.win/api/v1',
+  MOCK_MODE: false,
 };

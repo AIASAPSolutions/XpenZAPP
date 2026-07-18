@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Switch, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Switch, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
@@ -15,6 +16,7 @@ import Card from '../../components/common/Card';
 import Divider from '../../components/common/Divider';
 import Button from '../../components/common/Button';
 import { openAppDrawer } from '../../utils/navigation';
+import * as exportApi from '../../api/export';
 
 export const SettingsScreen = ({ navigation }) => {
   const { colors, isDark } = useTheme();
@@ -41,12 +43,15 @@ export const SettingsScreen = ({ navigation }) => {
     showToast(`Default currency changed to ${curr}`, "success");
   };
 
-  const handleExportData = () => {
+  const handleExportData = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast("Compiling full transactions data as CSV...", "success");
-    setTimeout(() => {
-      showToast("CSV payload dispatched successfully!", "success");
-    }, 1500);
+    showToast('Compiling full transactions data as CSV...', 'success');
+    try {
+      await exportApi.exportCsv();
+      showToast('CSV export dispatched successfully!', 'success');
+    } catch {
+      showToast('Failed to export CSV data.', 'error');
+    }
   };
 
   const handleDeleteAccount = () => {

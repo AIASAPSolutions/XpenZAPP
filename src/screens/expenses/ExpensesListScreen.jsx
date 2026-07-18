@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, SafeAreaView, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';

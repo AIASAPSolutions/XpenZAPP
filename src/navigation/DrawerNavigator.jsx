@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -48,13 +49,13 @@ const CustomDrawerContent = (props) => {
       <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
         {/* User Profile Header Block */}
         <View style={[styles.headerContainer, { backgroundColor: colors.primaryContainer }]}>
-          <Avatar size={64} name={user?.fullName || 'Rahul Sharma'} style={styles.avatar} />
-          <Text style={[styles.userName, { color: colors.onPrimaryContainer }]}>
-            {user?.fullName || 'Rahul Sharma'}
-          </Text>
-          <Text style={[styles.userRole, { color: colors.textSecondary }]}>
-            {user?.role || 'Director'} • {user?.organizationName || 'AI ASAP Solutions'}
-          </Text>
+          <Avatar size={64} name={user?.fullName || user?.email || 'User'} style={styles.avatar} />
+        <Text style={[styles.userName, { color: colors.onPrimaryContainer }]}>
+          {user?.fullName || user?.email?.split('@')[0] || 'User'}
+        </Text>
+        <Text style={[styles.userRole, { color: colors.textSecondary }]}>
+          {user?.role || 'Member'} • {user?.organizationName || ''}
+        </Text>
           {user?.accountType && (
             <View style={[styles.badge, { backgroundColor: colors.primary }]}>
               <Text style={styles.badgeText}>{user.accountType.toUpperCase()}</Text>
