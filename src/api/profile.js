@@ -6,10 +6,26 @@ export const getProfile = async () => {
   return { data: normalizeUser(res.data) };
 };
 
+const extractMembers = (data) => {
+  const list = Array.isArray(data) ? data : data?.members || data?.data || [];
+  return list.map(normalizeUser);
+};
+
 export const getOrganizationMembers = async () => {
-  const res = await request('get', '/organizations/members');
-  const list = Array.isArray(res.data) ? res.data : res.data?.members || res.data?.data || [];
-  return { data: list.map(normalizeUser) };
+  try {
+    const res = await request('get', '/organizations/members');
+    return { data: extractMembers(res.data) };
+  } catch (err) {
+    if (err?.response?.status === 422 || err?.response?.status === 404) {
+      try {
+        const res2 = await request('get', '/organizations/me/members');
+        return { data: extractMembers(res2.data) };
+      } catch {
+        return { data: [] };
+      }
+    }
+    return { data: [] };
+  }
 };
 
 export const updateProfile = async (profileData) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Text, FlatList, TextInput, TouchableOpacity, Modal, ScrollView, Alert, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Swipeable } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,21 +19,65 @@ import { groupExpensesByDate } from '../../utils/dateHelpers';
 import BentoCard from '../../components/common/BentoCard';
 import BentoRow from '../../components/common/BentoRow';
 import Divider from '../../components/common/Divider';
-import EmptyState from '../../components/common/EmptyState';
 import ExpenseCard from '../../components/expenses/ExpenseCard';
 import { SkeletonCardList } from '../../components/common/SkeletonLoader';
 import { openAppDrawer } from '../../utils/navigation';
 
 const CATEGORY_STYLES = {
-  'Food & Dining':   { icon: 'food-fork-drink',  color: '#FF6B6B', bg: '#FFF0F0' },
-  'Transport':       { icon: 'car',               color: '#4ECDC4', bg: '#F0FFFE' },
-  'Shopping':        { icon: 'shopping',          color: '#45B7D1', bg: '#F0F8FF' },
-  'Entertainment':   { icon: 'movie-open',        color: '#96CEB4', bg: '#F0FFF4' },
-  'Healthcare':      { icon: 'hospital-box',      color: '#FF6B9D', bg: '#FFF0F7' },
-  'Education':       { icon: 'school',            color: '#C3A6FF', bg: '#F8F0FF' },
-  'Utilities':       { icon: 'lightning-bolt',    color: '#FFD93D', bg: '#FFFBF0' },
-  'Travel':          { icon: 'airplane',          color: '#6C47FF', bg: '#F3F0FF' },
-  'Other':           { icon: 'dots-horizontal',   color: '#888888', bg: '#F5F5F5' },
+  'Food & Dining': {
+    icon: 'food-fork-drink',
+    color: '#FF6B6B',
+    bg: '#FFF0F0',
+    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&q=80',
+  },
+  'Transport': {
+    icon: 'car',
+    color: '#4ECDC4',
+    bg: '#F0FFFE',
+    image: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=200&q=80',
+  },
+  'Shopping': {
+    icon: 'shopping',
+    color: '#45B7D1',
+    bg: '#F0F8FF',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=200&q=80',
+  },
+  'Entertainment': {
+    icon: 'movie-open',
+    color: '#96CEB4',
+    bg: '#F0FFF4',
+    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=200&q=80',
+  },
+  'Healthcare': {
+    icon: 'hospital-box',
+    color: '#FF6B9D',
+    bg: '#FFF0F7',
+    image: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=200&q=80',
+  },
+  'Education': {
+    icon: 'school',
+    color: '#C3A6FF',
+    bg: '#F8F0FF',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&q=80',
+  },
+  'Utilities': {
+    icon: 'lightning-bolt',
+    color: '#FFD93D',
+    bg: '#FFFBF0',
+    image: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=200&q=80',
+  },
+  'Travel': {
+    icon: 'airplane',
+    color: '#6C47FF',
+    bg: '#F3F0FF',
+    image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=200&q=80',
+  },
+  'Other': {
+    icon: 'dots-horizontal',
+    color: '#888888',
+    bg: '#F5F5F5',
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=200&q=80',
+  },
 };
 
 export const ExpensesListScreen = ({ navigation }) => {
@@ -275,14 +319,17 @@ export const ExpensesListScreen = ({ navigation }) => {
           const catExpenses = expenses.filter(e =>
             (e.category || 'Other') === name
           );
-          if (catExpenses.length === 0) return null;
           const total = catExpenses.reduce((sum, e) =>
             sum + (parseFloat(e.amount) || 0), 0
           );
           return (
             <TouchableOpacity
               key={name}
-              style={[styles.categoryCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[
+                styles.categoryCard,
+                { backgroundColor: colors.card, borderColor: colors.border },
+                selectedCategory === name && { borderColor: style.color, borderWidth: 2 },
+              ]}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedCategory(
@@ -292,25 +339,24 @@ export const ExpensesListScreen = ({ navigation }) => {
               activeOpacity={0.8}
             >
               {/* Icon area - top */}
-              <View style={[
-                styles.categoryIconArea,
-                { backgroundColor: style.bg },
-                selectedCategory === name && {
-                  backgroundColor: style.color + '33'
-                }
-              ]}>
+              <ImageBackground
+                source={{ uri: style.image }}
+                style={styles.categoryIconArea}
+                imageStyle={{
+                  borderTopLeftRadius: 16,
+                  borderTopRightRadius: 16
+                }}
+              >
+                <View style={styles.categoryImageOverlay} />
                 <MaterialCommunityIcons
                   name={style.icon}
                   size={36}
-                  color={style.color}
+                  color="#FFFFFF"
                 />
                 {selectedCategory === name && (
-                  <View style={[
-                    styles.selectedDot,
-                    { backgroundColor: style.color }
-                  ]} />
+                  <View style={styles.selectedDot} />
                 )}
-              </View>
+              </ImageBackground>
               {/* Text area - bottom */}
               <View style={[styles.categoryTextArea, { backgroundColor: colors.card }]}>
                 <Text
@@ -334,19 +380,35 @@ export const ExpensesListScreen = ({ navigation }) => {
         })}
       </View>
 
+      {selectedCategory && (
+        <TouchableOpacity
+          style={[styles.clearFilter, { backgroundColor: colors.primary }]}
+          onPress={() => setSelectedCategory(null)}
+        >
+          <Text style={styles.clearFilterText}>
+            ✕ {selectedCategory}
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {/* ROW 3: Expense cards grouped by date */}
       {loading && expenses.length === 0 ? (
         <View style={styles.listScroll}>
           <SkeletonCardList count={5} />
         </View>
       ) : grouped.length === 0 ? (
-        <EmptyState
-          icon="receipt"
-          title="No Expenses Logged"
-          description="Log Swiggy dinners or Ola cab bookings by talking with XpenZ AI assistant!"
-          actionTitle="+ Add Expense"
-          onActionPress={() => navigation.navigate('AddExpense')}
-        />
+        <View style={styles.simpleEmpty}>
+          <MaterialCommunityIcons
+            name="receipt"
+            size={48}
+            color={colors.textSecondary}
+            style={{ opacity: 0.4 }}
+          />
+          <Text style={[styles.simpleEmptyText, { color: colors.text }]}>No expenses yet</Text>
+          <Text style={[styles.simpleEmptySubtext, { color: colors.textSecondary }]}>
+            Add your first expense using the + button
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={grouped}
@@ -682,11 +744,18 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   categoryIconArea: {
-    height: 80,
+    height: 90,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  categoryImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   selectedDot: {
     position: 'absolute',
@@ -695,6 +764,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: '#FFFFFF',
   },
   categoryTextArea: {
     padding: 8,
@@ -711,6 +781,37 @@ const styles = StyleSheet.create({
   },
   categoryCardCount: {
     fontSize: 9,
+  },
+  clearFilter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  clearFilterText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  simpleEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  simpleEmptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 12,
+    opacity: 0.6,
+  },
+  simpleEmptySubtext: {
+    fontSize: 13,
+    marginTop: 4,
+    textAlign: 'center',
   },
   listScroll: {
     paddingHorizontal: 16,

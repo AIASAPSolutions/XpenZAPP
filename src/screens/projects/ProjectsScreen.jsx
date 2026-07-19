@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressBar } from 'react-native-paper';
@@ -26,31 +26,44 @@ export const ProjectsScreen = ({ navigation }) => {
   const { projects, loading, fetchProjects, createProject } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectBudget, setNewProjectBudget] = useState('');
+  const [newProjectDesc, setNewProjectDesc] = useState('');
+  const [creating, setCreating] = useState(false);
+
   useEffect(() => {
     fetchProjects();
   }, []);
 
-  const handleCreateProject = () => {
+  const openCreateModal = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.prompt(
-      "Configure New Project Workspace",
-      "Enter a name for your business project workspace:",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Create",
-          onPress: async (name) => {
-            if (!name?.trim()) return;
-            const res = await createProject(name.trim(), 120000);
-            if (res.success) {
-              showToast(`Project workspace "${name}" initialized!`, "success");
-            } else {
-              showToast(res.error, "error");
-            }
-          }
-        }
-      ]
-    );
+    setShowCreateModal(true);
+  };
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+      showToast('Project name is required', 'error');
+      return;
+    }
+    setCreating(true);
+    try {
+      await createProject({
+        name: newProjectName.trim(),
+        budget: newProjectBudget ? parseFloat(newProjectBudget) : null,
+        description: newProjectDesc.trim() || null,
+      });
+      setShowCreateModal(false);
+      setNewProjectName('');
+      setNewProjectBudget('');
+      setNewProjectDesc('');
+      showToast('Project created!', 'success');
+      fetchProjects();
+    } catch (e) {
+      showToast(e?.response?.data?.detail || 'Failed to create project', 'error');
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -72,7 +85,7 @@ export const ProjectsScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ROW 1: Large "New Project" card */}
-        <TouchableOpacity activeOpacity={0.85} onPress={handleCreateProject}>
+        <TouchableOpacity activeOpacity={0.85} onPress={openCreateModal}>
           <BentoCard size="full" accent style={styles.newProjectCard}>
             <View style={styles.newProjectRow}>
               <View>
@@ -98,7 +111,7 @@ export const ProjectsScreen = ({ navigation }) => {
             title="No Projects Yet"
             description="Create your first project workspace to start tracking expenses."
             actionTitle="+ New Project"
-            onActionPress={handleCreateProject}
+            onActionPress={openCreateModal}
           />
         ) : (
           <BentoRow style={styles.projectsWrap}>
@@ -156,6 +169,67 @@ export const ProjectsScreen = ({ navigation }) => {
         )}
 
       </ScrollView>
+
+      {/* CREATE PROJECT MODAL */}
+      <Modal
+        visible={showCreateModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowCreateModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>New Project</Text>
+
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="Project Name *"
+              placeholderTextColor={colors.textSecondary}
+              value={newProjectName}
+              onChangeText={setNewProjectName}
+            />
+
+            <TextInput
+              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="Budget (₹ optional)"
+              placeholderTextColor={colors.textSecondary}
+              value={newProjectBudget}
+              onChangeText={setNewProjectBudget}
+              keyboardType="numeric"
+            />
+
+            <TextInput
+              style={[styles.modalInput, styles.modalTextArea, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+              placeholder="Description (optional)"
+              placeholderTextColor={colors.textSecondary}
+              value={newProjectDesc}
+              onChangeText={setNewProjectDesc}
+              multiline
+              numberOfLines={3}
+            />
+
+            <TouchableOpacity
+              style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+              onPress={handleCreateProject}
+              disabled={creating}
+            >
+              {creating
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.modalBtnText}>Create Project</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.modalCancelBtn, { backgroundColor: colors.background, borderColor: colors.border }]}
+              onPress={() => setShowCreateModal(false)}
+            >
+              <Text style={[styles.modalBtnText, { color: colors.text }]}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -277,6 +351,47 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: 10,
     fontWeight: typography.weights.semibold,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 20,
+  },
+  modalInput: {
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  modalTextArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  modalBtn: {
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  modalCancelBtn: {
+    borderWidth: 1,
+  },
+  modalBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 export default ProjectsScreen;

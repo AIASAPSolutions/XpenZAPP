@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,12 +16,62 @@ import BentoCard from '../../components/common/BentoCard';
 import Avatar from '../../components/common/Avatar';
 import Badge from '../../components/common/Badge';
 
-const CHIPS = [
-  "Log ₹500 Swiggy dinner",
-  "Show this week's spending",
-  "Am I over budget?",
-  "Add ₹1200 Ola cab"
+const SUGGESTION_IMAGES = [
+  {
+    text: 'Log ₹500 Swiggy dinner',
+    image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=80',
+  },
+  {
+    text: "This week's spending",
+    image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&q=80',
+  },
+  {
+    text: 'Add Uber cab ₹250',
+    image: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=300&q=80',
+  },
+  {
+    text: 'Monthly report',
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&q=80',
+  },
 ];
+
+const PROJECT_IMAGES = {
+  'operations': {
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&q=80',
+    icon: 'briefcase',
+    color: '#6C47FF',
+  },
+  'marketing': {
+    image: 'https://images.unsplash.com/photo-1533750516457-a7f992034fec?w=200&q=80',
+    icon: 'bullhorn',
+    color: '#FF6B6B',
+  },
+  'travel': {
+    image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=200&q=80',
+    icon: 'airplane',
+    color: '#4ECDC4',
+  },
+  'ticket': {
+    image: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200&q=80',
+    icon: 'ticket',
+    color: '#FFD93D',
+  },
+  'default': {
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+    icon: 'folder',
+    color: '#96CEB4',
+  },
+};
+
+const getProjectStyle = (projectName) => {
+  const key = projectName?.toLowerCase();
+  for (const k of Object.keys(PROJECT_IMAGES)) {
+    if (k !== 'default' && key?.includes(k)) {
+      return PROJECT_IMAGES[k];
+    }
+  }
+  return PROJECT_IMAGES['default'];
+};
 
 export const AIChatScreen = ({ navigation, route }) => {
   const { colors } = useTheme();
@@ -129,27 +179,58 @@ export const AIChatScreen = ({ navigation, route }) => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.projectSelectorScroll, { borderBottomColor: colors.border }]}
+          style={styles.projectScrollRow}
+          contentContainerStyle={styles.projectScrollContent}
         >
-          {projects.map((p) => {
-            const isSelected = (activeProjectId || projects[0]?.id) === p.id;
+          {projects.map((project) => {
+            const pStyle = getProjectStyle(project.name);
+            const isSelected = (activeProjectId || projects[0]?.id) === project.id;
             return (
               <TouchableOpacity
-                key={p.id}
-                activeOpacity={0.8}
+                key={project.id}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setActiveProjectId(p.id);
+                  setActiveProjectId(project.id);
                 }}
                 style={[
-                  styles.projectChip,
-                  { borderColor: colors.border },
-                  isSelected && { backgroundColor: colors.primaryContainer, borderColor: colors.primary }
+                  styles.projectImageCard,
+                  isSelected && styles.projectImageCardSelected,
                 ]}
+                activeOpacity={0.8}
               >
-                <MaterialCommunityIcons name="folder-outline" size={14} color={isSelected ? colors.primary : colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text style={[styles.projectChipText, { color: isSelected ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
-                  {p.name}
+                <ImageBackground
+                  source={{ uri: pStyle.image }}
+                  style={styles.projectImageArea}
+                  imageStyle={{ borderRadius: 14 }}
+                >
+                  <View style={[
+                    styles.projectImageOverlay,
+                    isSelected && { backgroundColor: 'rgba(108,71,255,0.5)' }
+                  ]} />
+                  <MaterialCommunityIcons
+                    name={pStyle.icon}
+                    size={22}
+                    color="#FFFFFF"
+                  />
+                  {isSelected && (
+                    <View style={styles.projectSelectedBadge}>
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={12}
+                        color="#FFFFFF"
+                      />
+                    </View>
+                  )}
+                </ImageBackground>
+                <Text
+                  style={[
+                    styles.projectImageLabel,
+                    { color: colors.textSecondary },
+                    isSelected && { color: colors.primary, fontWeight: '700' }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {project.name}
                 </Text>
               </TouchableOpacity>
             );
@@ -286,16 +367,23 @@ export const AIChatScreen = ({ navigation, route }) => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsScroll}
+            contentContainerStyle={styles.suggestionsRow}
           >
-            {CHIPS.map((chipText, idx) => (
+            {SUGGESTION_IMAGES.map((s, i) => (
               <TouchableOpacity
-                key={`chip-${idx}`}
-                activeOpacity={0.8}
-                onPress={() => handleChipPress(chipText)}
-                style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
+                key={i}
+                onPress={() => handleChipPress(s.text)}
+                activeOpacity={0.85}
+                style={styles.suggestionChip}
               >
-                <Text style={[styles.chipText, { color: colors.primary }]}>{chipText}</Text>
+                <ImageBackground
+                  source={{ uri: s.image }}
+                  style={styles.suggestionBg}
+                  imageStyle={styles.suggestionBgImage}
+                >
+                  <View style={styles.suggestionOverlay} />
+                  <Text style={styles.suggestionText}>{s.text}</Text>
+                </ImageBackground>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -391,6 +479,51 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.bold,
     maxWidth: 120,
+  },
+  projectScrollRow: {
+    maxHeight: 110,
+    marginBottom: 8,
+  },
+  projectScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+    flexDirection: 'row',
+  },
+  projectImageCard: {
+    width: 80,
+    alignItems: 'center',
+  },
+  projectImageCardSelected: {
+    transform: [{ scale: 1.05 }],
+  },
+  projectImageArea: {
+    width: 72,
+    height: 72,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  projectImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 14,
+  },
+  projectSelectedBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(108,71,255,0.8)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  projectImageLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+    width: 72,
   },
   messagesScroll: {
     paddingHorizontal: spacing.xl,
@@ -540,21 +673,39 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
   },
-  chipsScroll: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+  suggestionsRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 10,
+    flexDirection: 'row',
   },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm - 2,
-    borderRadius: spacing.borderRadius.round,
-    borderWidth: 1.5,
+  suggestionChip: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    height: 64,
+    minWidth: 140,
+    maxWidth: 180,
   },
-  chipText: {
-    fontFamily: typography.fontFamily,
-    fontSize: typography.sizes.xs + 1,
-    fontWeight: typography.weights.bold,
+  suggestionBg: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  suggestionBgImage: {
+    borderRadius: 20,
+  },
+  suggestionOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 20,
+  },
+  suggestionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
   },
   inputBarWrapper: {
     flexDirection: 'row',

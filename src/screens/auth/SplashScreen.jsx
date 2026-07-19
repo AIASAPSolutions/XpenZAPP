@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, Animated, View } from 'react-native';
+import { StyleSheet, Text, Animated, View, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as SecureStore from 'expo-secure-store';
 import { colors } from '../../constants/colors';
@@ -62,7 +62,11 @@ export const SplashScreen = ({ navigation }) => {
         ]}
       >
         <View style={styles.logoInner}>
-          <Text style={styles.logoText}>XP</Text>
+          <Image
+            source={require('../../../assets/icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
         <Text style={styles.appName}>{CONFIG.APP_NAME}</Text>
         <Text style={styles.tagline}>{CONFIG.TAGLINE}</Text>
@@ -104,6 +108,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.huge,
     fontWeight: typography.weights.black,
     color: colors.primary,
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
   },
   appName: {
     fontFamily: typography.fontFamily,

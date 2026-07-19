@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, TextInput, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -33,6 +33,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
   const [receiptUri, setReceiptUri] = useState(prefillData?.receiptUri || null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { control, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(expenseSchema),
@@ -144,12 +145,14 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
   const onSubmit = async (data) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSaving(true);
     let res;
     if (isEditing) {
       res = await updateExpense(prefillData.id, data);
     } else {
       res = await addExpense(data);
     }
+    setSaving(false);
 
     if (res.success) {
       showToast(isEditing ? "Expense updated successfully!" : "Expense logged successfully!", "success");
@@ -158,6 +161,8 @@ export const AddExpenseScreen = ({ route, navigation }) => {
       showToast(res.error, "error");
     }
   };
+
+  const handleSave = handleSubmit(onSubmit);
 
   return (
     <KeyboardAvoidingView
@@ -367,15 +372,21 @@ export const AddExpenseScreen = ({ route, navigation }) => {
           )}
         </View>
 
-        {/* Save button */}
-        <Button
-          title={isEditing ? 'Update Expense' : 'Save Expense'}
-          onPress={handleSubmit(onSubmit)}
-          variant="primary"
-          style={styles.saveBtn}
-        />
-
       </ScrollView>
+
+      {/* Fixed bottom save bar */}
+      <View style={[styles.saveBar, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.saveBtnText}>{isEditing ? 'Update Expense' : 'Save Expense'}</Text>
+          }
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -407,7 +418,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
-    paddingBottom: 48,
+    paddingBottom: 100,
   },
   amountContainer: {
     alignItems: 'center',
@@ -530,9 +541,25 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: spacing.md,
   },
+  saveBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+  },
   saveBtn: {
-    width: '100%',
-    marginTop: spacing.md,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 export default AddExpenseScreen;

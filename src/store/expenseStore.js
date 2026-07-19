@@ -214,21 +214,13 @@ export const useExpenseStore = create((set, get) => ({
     }
   },
 
-  createProject: async (projectName, projectBudget = 0) => {
-    try {
-      const response = await projectsApi.createProject({
-        name: projectName,
-        budget: projectBudget,
-        description: '',
-      });
-      set({
-        projects: [...get().projects, response.data],
-        activeProjectId: get().activeProjectId || response.data.id,
-      });
-      return { success: true, project: response.data };
-    } catch (err) {
-      return { success: false, error: 'Failed to create project' };
-    }
+  createProject: async (projectData) => {
+    const response = await projectsApi.createProject(projectData);
+    set({
+      projects: [...get().projects, response.data],
+      activeProjectId: get().activeProjectId || response.data.id,
+    });
+    return response.data;
   },
 
   parseReceiptImage: async (imageUri) => {

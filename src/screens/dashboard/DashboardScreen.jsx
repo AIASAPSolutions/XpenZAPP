@@ -32,11 +32,15 @@ export const DashboardScreen = ({ navigation }) => {
   const { budgets, fetchBudgets } = useBudgets();
   const showToast = useUiStore((state) => state.showToast);
   const [overview, setOverview] = useState(null);
+  const [projectsTab, setProjectsTab] = useState('active');
 
   useEffect(() => {
     fetchExpenses();
     fetchBudgets();
     reportsApi.getAnalyticsOverview().then((res) => setOverview(res.data)).catch(() => {});
+    reportsApi.getAnalyticsTrends(7)
+      .then((res) => console.log('TREND DATA:', JSON.stringify(res.data)))
+      .catch(() => {});
   }, []);
 
   // Compute Dashboard Metrics
@@ -202,6 +206,109 @@ export const DashboardScreen = ({ navigation }) => {
           <Text style={[bentoText.label, { color: colors.textSecondary, marginBottom: spacing.md }]}>Spending Trend</Text>
           <SpendingTrendChart />
         </BentoCard>
+
+        {/* ALL PROJECTS SECTION */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>ALL PROJECTS</Text>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => navigation.navigate('Projects')}>
+            <Text style={[styles.seeAll, { color: colors.primary }]}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.projectsTabRow}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setProjectsTab('active')}
+            style={[
+              styles.projectsTabChip,
+              { borderColor: colors.border },
+              projectsTab === 'active' && { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.projectsTabText, { color: colors.text }]}>Active ({projects.length})</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setProjectsTab('archived')}
+            style={[
+              styles.projectsTabChip,
+              { borderColor: colors.border },
+              projectsTab === 'archived' && { backgroundColor: colors.primaryContainer, borderColor: colors.primary },
+            ]}
+          >
+            <Text style={[styles.projectsTabText, { color: colors.text }]}>Archived (0)</Text>
+          </TouchableOpacity>
+        </View>
+
+        {(projectsTab === 'active' ? projects : []).length === 0 ? (
+          <EmptyState
+            icon="folder-open-outline"
+            title={projectsTab === 'active' ? 'No Projects Yet' : 'No Archived Projects'}
+            description="Create a project workspace to start tracking spending."
+          />
+        ) : (
+          <View style={styles.projectsList}>
+            {(projectsTab === 'active' ? projects : []).map((project) => {
+              const spent = project.totalSpent || 0;
+              const budget = project.budget || 0;
+              const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+              const barColor = pct > 85 ? '#FF6B6B' : pct > 60 ? '#FFD93D' : '#4ECDC4';
+
+              return (
+                <TouchableOpacity
+                  key={project.id}
+                  style={[styles.projectCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    navigation.navigate('Projects', { screen: 'ProjectDetail', params: { id: project.id } });
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.projectCardHeader}>
+                    <View style={[styles.projectAvatar, { backgroundColor: colors.primary }]}>
+                      <Text style={styles.projectAvatarText}>
+                        {project.name?.[0]?.toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.projectCardInfo}>
+                      <Text style={[styles.projectCardName, { color: colors.text }]} numberOfLines={1}>{project.name}</Text>
+                      {budget > 0
+                        ? <Text style={[styles.projectCardBudget, { color: colors.textSecondary }]}>
+                            {formatINR(spent)} / {formatINR(budget)}
+                          </Text>
+                        : <Text style={[styles.projectNoBudget, { color: colors.textSecondary }]}>No budget set</Text>
+                      }
+                    </View>
+                    <View style={styles.activeBadge}>
+                      <View style={styles.activeDot} />
+                      <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                    </View>
+                  </View>
+
+                  {budget > 0 && (
+                    <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+                      <View style={[styles.progressBarFill, {
+                        width: `${pct}%`,
+                        backgroundColor: barColor
+                      }]} />
+                    </View>
+                  )}
+
+                  <View style={styles.projectCardFooter}>
+                    <Text style={[styles.expenseCount, { color: colors.textSecondary }]}>
+                      {project.expenseCount || 0} EXPENSES →
+                    </Text>
+                    {budget > 0 && (
+                      <Text style={[styles.pctText, { color: barColor }]}>
+                        {pct.toFixed(1)}%
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         {/* BUDGET OVERVIEW */}
         <View style={styles.cardHeaderRow}>
@@ -380,6 +487,131 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: 10,
     fontWeight: typography.weights.bold,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontFamily: typography.fontFamily,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  seeAll: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.bold,
+  },
+  projectsTabRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  projectsTabChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm - 2,
+    borderRadius: spacing.borderRadius.round,
+    borderWidth: 1.5,
+  },
+  projectsTabText: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.bold,
+  },
+  projectsList: {
+    marginBottom: spacing.md,
+  },
+  projectCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  projectCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  projectAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  projectAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  projectCardInfo: {
+    flex: 1,
+  },
+  projectCardName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  projectCardBudget: {
+    fontSize: 12,
+  },
+  projectNoBudget: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8FFF3',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#4ECDC4',
+  },
+  activeBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F6E56',
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  projectCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  expenseCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  pctText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 export default DashboardScreen;

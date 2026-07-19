@@ -19,7 +19,7 @@ import BentoRow from '../../components/common/BentoRow';
 import Divider from '../../components/common/Divider';
 import ScreenHeader from '../../components/common/ScreenHeader';
 import SpendingTrendChart from '../../components/reports/SpendingTrendChart';
-import CategoryDonutChart from '../../components/reports/CategoryDonutChart';
+import CategoryDonutChart, { CHART_COLORS } from '../../components/reports/CategoryDonutChart';
 import * as reportsApi from '../../api/reports';
 import { downloadAndShareExport } from '../../utils/exportDownload';
 
@@ -57,9 +57,25 @@ export const ReportsScreen = ({ navigation }) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount;
     return acc;
   }, {});
-  const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0];
+  const sortedCategoryEntries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+  const topCategoryEntry = sortedCategoryEntries[0];
   const topCategory = topCategoryEntry ? getCategoryById(topCategoryEntry[0]) : null;
   const topCategoryAmount = topCategoryEntry ? topCategoryEntry[1] : 0;
+
+  const categoryBreakdown = sortedCategoryEntries.map(([categoryId, amount], index) => ({
+    category: getCategoryById(categoryId),
+    amount,
+    percentage: totalSpent > 0 ? (amount / totalSpent) * 100 : 0,
+    color: CHART_COLORS[index % CHART_COLORS.length],
+  }));
+
+  const seenCategories = new Set();
+  const uniqueBreakdown = categoryBreakdown.filter((row) => {
+    const key = row.category?.name || row.category?.id;
+    if (seenCategories.has(key)) return false;
+    seenCategories.add(key);
+    return true;
+  });
 
   // AI-generated Insights
   const INSIGHTS = [
@@ -153,6 +169,27 @@ export const ReportsScreen = ({ navigation }) => {
         <BentoCard size="full">
           <Text style={[bentoText.label, { color: colors.textSecondary, marginBottom: spacing.lg }]}>Category Breakdown</Text>
           <CategoryDonutChart />
+          {uniqueBreakdown.length > 0 && (
+            <View style={styles.breakdownList}>
+              {uniqueBreakdown.map((row, index) => (
+                <View
+                  key={`cat-${row.category?.id || row.category?.name || index}`}
+                  style={styles.breakdownRow}
+                >
+                  <View style={[styles.breakdownDot, { backgroundColor: row.color }]} />
+                  <Text style={[styles.breakdownName, { color: colors.text }]} numberOfLines={1}>
+                    {row.category.name}
+                  </Text>
+                  <Text style={[styles.breakdownAmount, { color: colors.text }]}>
+                    {renderVal(row.amount)}
+                  </Text>
+                  <Text style={[styles.breakdownPct, { color: colors.textSecondary }]}>
+                    {row.percentage.toFixed(1)}%
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </BentoCard>
 
         {/* ROW 3: Spending Trend + time filter pills */}
@@ -303,6 +340,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: typography.weights.bold,
     flexShrink: 1,
+  },
+  breakdownList: {
+    marginTop: spacing.lg,
+    gap: spacing.sm + 2,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breakdownDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: spacing.sm,
+  },
+  breakdownName: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.semibold,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  breakdownAmount: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.bold,
+    marginRight: spacing.sm,
+  },
+  breakdownPct: {
+    fontFamily: typography.fontFamily,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    width: 42,
+    textAlign: 'right',
   },
   selectorWrapper: {
     flexDirection: 'row',

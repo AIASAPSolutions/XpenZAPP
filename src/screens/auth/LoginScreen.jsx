@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Image } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Checkbox } from 'react-native-paper';
@@ -56,8 +56,12 @@ export const LoginScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Welcome Section */}
         <View style={styles.header}>
-          <View style={[styles.logo, { backgroundColor: colors.primaryContainer }]}>
-            <Text style={[styles.logoText, { color: colors.primary }]}>XP</Text>
+          <View style={[styles.logo, { backgroundColor: 'transparent' }]}>
+            <Image
+              source={require('../../../assets/icon.png')}
+              style={{ width: 64, height: 64, borderRadius: 14 }}
+              resizeMode="contain"
+            />
           </View>
           <Text style={[styles.title, { color: colors.text }]}>Welcome Back</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>

@@ -1,5 +1,5 @@
 import { request } from './client';
-import { normalizeOverview, normalizeTrends } from './normalizers';
+import { normalizeOverview } from './normalizers';
 
 export const getAnalyticsOverview = async () => {
   const res = await request('get', '/analytics/overview');
@@ -8,7 +8,8 @@ export const getAnalyticsOverview = async () => {
 
 export const getAnalyticsTrends = async (days = 30) => {
   const res = await request('get', '/analytics/trends', null, { params: { days } });
-  return { data: normalizeTrends(res.data) };
+  // Raw payload — shape varies by deployment, normalized by the consuming chart component.
+  return { data: res.data };
 };
 
 export const getOrgSummary = async () => {
