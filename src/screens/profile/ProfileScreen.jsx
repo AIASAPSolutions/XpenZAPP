@@ -94,14 +94,14 @@ export const ProfileScreen = ({ navigation }) => {
         {/* ROW 1: Large profile card */}
         <BentoCard size="full" style={styles.profileCard}>
           <TouchableOpacity activeOpacity={0.85} onPress={handleUploadPhoto} style={styles.avatarWrapper}>
-            <Avatar size={88} name={user?.fullName || 'Rahul Sharma'} />
+            <Avatar size={88} name={user?.fullName || 'User'} />
             <View style={[styles.cameraOverlay, { backgroundColor: colors.primary }]}>
               <MaterialCommunityIcons name="camera" size={13} color="#ffffff" />
             </View>
           </TouchableOpacity>
 
-          <Text style={[styles.userName, { color: colors.text }]}>{user?.fullName || 'Rahul Sharma'}</Text>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email || 'rahul@asap.org'}</Text>
+          <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>{user?.fullName || 'User'}</Text>
+          <Text style={[styles.userEmail, { color: colors.textSecondary }]} numberOfLines={1}>{user?.email || '—'}</Text>
 
           <Badge text={(user?.role || 'Member').toUpperCase()} variant="primary" style={styles.badge} />
         </BentoCard>
@@ -146,12 +146,12 @@ export const ProfileScreen = ({ navigation }) => {
           <Text style={[bentoText.label, { color: colors.textSecondary }]}>Account Info</Text>
           <View style={styles.accountInfoRow}>
             <MaterialCommunityIcons name="calendar-range" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[bentoText.subtitle, { color: colors.text }]}>Since {user?.memberSince || 'May 2025'}</Text>
+            <Text style={[bentoText.subtitle, { color: colors.text }]}>Since {user?.memberSince || '—'}</Text>
           </View>
           <View style={styles.accountInfoRow}>
             <MaterialCommunityIcons name="account-badge-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-            <Text style={[bentoText.subtitle, { color: colors.text, textTransform: 'capitalize' }]}>
-              {user?.accountType || 'Individual'} account
+            <Text style={[bentoText.subtitle, { color: colors.text, textTransform: 'capitalize' }]} numberOfLines={1}>
+              {user?.accountType || 'individual'} account
             </Text>
           </View>
         </BentoCard>
@@ -162,17 +162,17 @@ export const ProfileScreen = ({ navigation }) => {
 
           <View style={styles.detailItem}>
             <MaterialCommunityIcons name="office-building" size={20} color={colors.textSecondary} style={{ marginRight: spacing.md }} />
-            <View>
+            <View style={styles.detailItemText}>
               <Text style={[styles.itemLabel, { color: colors.textSecondary }]}>Organization</Text>
-              <Text style={[styles.itemVal, { color: colors.text }]}>{user?.organizationName || 'AI ASAP Solutions'}</Text>
+              <Text style={[styles.itemVal, { color: colors.text }]} numberOfLines={1}>{user?.organizationName || '—'}</Text>
             </View>
           </View>
 
           <View style={[styles.detailItem, { marginTop: spacing.md }]}>
             <MaterialCommunityIcons name="card-account-details-outline" size={20} color={colors.textSecondary} style={{ marginRight: spacing.md }} />
-            <View>
+            <View style={styles.detailItemText}>
               <Text style={[styles.itemLabel, { color: colors.textSecondary }]}>Designation / Role</Text>
-              <Text style={[styles.itemVal, { color: colors.text }]}>{user?.role || 'Director'}</Text>
+              <Text style={[styles.itemVal, { color: colors.text }]} numberOfLines={1}>{user?.role || 'Member'}</Text>
             </View>
           </View>
         </BentoCard>
@@ -298,6 +298,10 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  detailItemText: {
+    flex: 1,
+    flexShrink: 1,
   },
   itemLabel: {
     fontFamily: typography.fontFamily,

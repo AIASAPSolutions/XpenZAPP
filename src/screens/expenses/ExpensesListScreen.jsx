@@ -368,10 +368,10 @@ export const ExpensesListScreen = ({ navigation }) => {
                 <Text style={[
                   styles.categoryCardAmount,
                   { color: style.color }
-                ]}>
+                ]} numberOfLines={1}>
                   {formatINR(total)}
                 </Text>
-                <Text style={[styles.categoryCardCount, { color: colors.textSecondary }]}>
+                <Text style={[styles.categoryCardCount, { color: colors.textSecondary }]} numberOfLines={1}>
                   {catExpenses.length} expense{catExpenses.length !== 1 ? 's' : ''}
                 </Text>
               </View>

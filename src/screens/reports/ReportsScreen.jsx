@@ -48,7 +48,8 @@ export const ReportsScreen = ({ navigation }) => {
 
   // Summary Metrics
   const totalSpent = summary?.totalSpent ?? expenses.reduce((sum, e) => sum + e.amount, 0);
-  const avgPerDay = totalSpent / 29;
+  const daysElapsedThisMonth = new Date().getDate();
+  const avgPerDay = totalSpent / daysElapsedThisMonth;
   const highestExpense = expenses.length > 0 ? Math.max(...expenses.map(e => e.amount)) : 0;
   const savingsPct = summary?.savingsChangePercent;
 

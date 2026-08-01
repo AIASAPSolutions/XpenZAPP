@@ -38,9 +38,6 @@ export const DashboardScreen = ({ navigation }) => {
     fetchExpenses();
     fetchBudgets();
     reportsApi.getAnalyticsOverview().then((res) => setOverview(res.data)).catch(() => {});
-    reportsApi.getAnalyticsTrends(7)
-      .then((res) => console.log('TREND DATA:', JSON.stringify(res.data)))
-      .catch(() => {});
   }, []);
 
   // Compute Dashboard Metrics

@@ -17,6 +17,7 @@ export const Input = ({
   style,
   inputStyle,
   onBlur,
+  multiline = false,
   ...props
 }) => {
   const { colors } = useTheme();
@@ -39,6 +40,7 @@ export const Input = ({
       <View
         style={[
           styles.inputContainer,
+          multiline && styles.inputContainerMultiline,
           {
             borderColor: getBorderColor(),
             backgroundColor: colors.surface,
@@ -46,7 +48,7 @@ export const Input = ({
         ]}
       >
         {icon && (
-          <View style={styles.iconContainer}>
+          <View style={[styles.iconContainer, multiline && styles.iconContainerMultiline]}>
             <MaterialCommunityIcons name={icon} size={20} color={error ? colors.error : colors.textSecondary} />
           </View>
         )}
@@ -57,6 +59,7 @@ export const Input = ({
           placeholderTextColor={colors.textSecondary}
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
+          multiline={multiline}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
             setIsFocused(false);
@@ -64,6 +67,7 @@ export const Input = ({
           }}
           style={[
             styles.input,
+            multiline && styles.inputMultiline,
             {
               color: colors.text,
               fontFamily: typography.fontFamily,
@@ -105,13 +109,26 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: spacing.md,
   },
+  inputContainerMultiline: {
+    height: undefined,
+    minHeight: 52,
+    alignItems: 'flex-start',
+    paddingVertical: spacing.sm,
+  },
   iconContainer: {
     marginRight: spacing.sm,
+  },
+  iconContainerMultiline: {
+    marginTop: 2,
   },
   input: {
     flex: 1,
     height: '100%',
     fontSize: typography.sizes.md,
+  },
+  inputMultiline: {
+    height: undefined,
+    textAlignVertical: 'top',
   },
   passwordToggle: {
     padding: spacing.xs,

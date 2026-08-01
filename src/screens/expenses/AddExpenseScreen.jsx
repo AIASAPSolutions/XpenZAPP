@@ -127,7 +127,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
       }
       setValue('isAiParsed', true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showToast("Bill scanned! Form autofilled via XpenZ AI ?", "success");
+      showToast("Bill scanned! Form autofilled via XpenZ AI ✨", "success");
     } else {
       showToast(res.error || "Receipt scan failed.", "error");
     }
@@ -325,7 +325,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
               icon="note-text-outline"
               multiline
               numberOfLines={3}
-              inputStyle={{ height: 80, textAlignVertical: 'top' }}
+              inputStyle={{ minHeight: 80, padding: 12, textAlignVertical: 'top' }}
             />
           )}
         />
@@ -364,7 +364,7 @@ export const AddExpenseScreen = ({ route, navigation }) => {
 
           {receiptUri && (
             <Button
-              title="Parse with AI ?"
+              title="Parse with AI ✨"
               onPress={handleAiParsing}
               variant="outline"
               style={styles.parseBtn}

@@ -382,7 +382,7 @@ export const AIChatScreen = ({ navigation, route }) => {
                   imageStyle={styles.suggestionBgImage}
                 >
                   <View style={styles.suggestionOverlay} />
-                  <Text style={styles.suggestionText}>{s.text}</Text>
+                  <Text style={styles.suggestionText} numberOfLines={2}>{s.text}</Text>
                 </ImageBackground>
               </TouchableOpacity>
             ))}
@@ -721,12 +721,15 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    height: 40,
+    minHeight: 40,
+    maxHeight: 100,
     borderWidth: 1,
     borderRadius: 16,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     marginHorizontal: spacing.xs,
     fontSize: typography.sizes.sm + 1,
+    textAlignVertical: 'center',
   },
   sendBtn: {
     width: 38,

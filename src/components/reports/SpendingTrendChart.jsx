@@ -10,7 +10,7 @@ import { formatINR } from '../../utils/currency';
 import SkeletonLoader from '../common/SkeletonLoader';
 import { useExpenseStore } from '../../store/expenseStore';
 
-const chartWidth = Dimensions.get('window').width - spacing.xl * 2 - spacing.md * 2;
+const chartWidth = Dimensions.get('window').width - 48;
 
 // Handles the several trend payload shapes different backend deployments send.
 const normalizeTrendData = (raw) => {
@@ -25,10 +25,13 @@ const normalizeTrendData = (raw) => {
   }
 
   // Array of {date, amount}
-  if (Array.isArray(raw) && raw[0]?.date) {
+  if (Array.isArray(raw) && raw[0]?.date !== undefined) {
     return {
-      labels: raw.map(d => d.date?.slice(5) || ''),
-      datasets: [{ data: raw.map(d => parseFloat(d.amount || d.total || d.spent || 0)) }]
+      labels: raw.map(d => {
+        const date = new Date(d.date);
+        return `${date.getMonth() + 1}/${date.getDate()}`;
+      }),
+      datasets: [{ data: raw.map(d => parseFloat(d.amount) || 0) }]
     };
   }
 
@@ -78,7 +81,7 @@ const buildChartFromExpenses = (expenses) => {
 
   return {
     labels: Object.keys(last7),
-    datasets: [{ data: Object.values(last7) }],
+    datasets: [{ data: Object.values(last7).map(v => parseFloat(v) || 0) }],
   };
 };
 
@@ -112,7 +115,11 @@ export const SpendingTrendChart = () => {
     ? chartData
     : buildChartFromExpenses(expenses);
 
-  const peak = Math.max(...finalChartData.datasets[0].data, 1);
+  const safeData = finalChartData.datasets[0].data.map(
+    v => isNaN(parseFloat(v)) ? 0 : parseFloat(v)
+  );
+
+  const peak = Math.max(...safeData, 1);
 
   return (
     <View>
@@ -120,9 +127,16 @@ export const SpendingTrendChart = () => {
         Peak week: {formatINR(peak)}
       </Text>
       <LineChart
-        data={finalChartData}
+        data={{
+          labels: finalChartData.labels,
+          datasets: [{
+            data: safeData,
+            color: () => colors.primary,
+            strokeWidth: 2,
+          }],
+        }}
         width={chartWidth}
-        height={200}
+        height={180}
         yAxisLabel="₹"
         yAxisSuffix=""
         chartConfig={{

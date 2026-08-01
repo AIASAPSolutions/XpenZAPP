@@ -22,7 +22,7 @@ import Divider from '../../components/common/Divider';
 export const ExpenseDetailScreen = ({ route, navigation }) => {
   const { id } = route.params;
   const { colors } = useTheme();
-  const { expenses, fetchExpenses, deleteExpense } = useExpenses();
+  const { expenses, projects, fetchExpenses, deleteExpense } = useExpenses();
   const showToast = useUiStore((state) => state.showToast);
 
   const [isReceiptModalVisible, setIsReceiptModalVisible] = useState(false);
@@ -46,6 +46,7 @@ export const ExpenseDetailScreen = ({ route, navigation }) => {
   }
 
   const cat = getCategoryById(expense.category);
+  const project = projects.find(p => p.id === expense.project);
 
   const handleDelete = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -119,23 +120,23 @@ export const ExpenseDetailScreen = ({ route, navigation }) => {
           <View style={styles.receiptFields}>
             <View style={styles.fieldRow}>
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Category</Text>
-              <Text style={[styles.fieldVal, { color: colors.text }]}>{cat.name}</Text>
+              <Text style={[styles.fieldVal, { color: colors.text }]} numberOfLines={1}>{cat.name}</Text>
             </View>
 
             <View style={styles.fieldRow}>
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Logged Date</Text>
-              <Text style={[styles.fieldVal, { color: colors.text }]}>{formatDateWithTime(expense.date)}</Text>
+              <Text style={[styles.fieldVal, { color: colors.text }]} numberOfLines={1}>{formatDateWithTime(expense.date)}</Text>
             </View>
 
             <View style={styles.fieldRow}>
               <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Payment Method</Text>
-              <Text style={[styles.fieldVal, { color: colors.text }]}>{expense.paymentMethod}</Text>
+              <Text style={[styles.fieldVal, { color: colors.text }]} numberOfLines={1}>{expense.paymentMethod}</Text>
             </View>
 
-            {expense.project && (
+            {expense.project && project && (
               <View style={styles.fieldRow}>
                 <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Associated Project</Text>
-                <Badge text="Client Pitch Alpha" variant="accent" />
+                <Badge text={project.name} variant="accent" />
               </View>
             )}
           </View>
@@ -314,11 +315,15 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
+    flexShrink: 0,
   },
   fieldVal: {
     fontFamily: typography.fontFamily,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
+    flexShrink: 1,
+    marginLeft: spacing.md,
+    textAlign: 'right',
   },
   notesSection: {
     width: '100%',
