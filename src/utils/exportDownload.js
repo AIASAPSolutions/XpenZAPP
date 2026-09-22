@@ -2,29 +2,24 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as SecureStore from 'expo-secure-store';
 import { CONFIG } from '../constants/config';
+import { useExpenseStore } from '../store/expenseStore';
 
-const EXTENSION = { csv: 'csv', pdf: 'pdf', json: 'json' };
-const MIME_TYPE = {
-  csv: 'text/csv',
-  pdf: 'application/pdf',
-  json: 'application/json',
-};
+const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 /**
- * Downloads a /export/{format} file to local cache and opens the native
- * share sheet so the user can save or send it. Returns the local file URI.
+ * Downloads the active project's Excel export (/export/projects/{id}/export/excel)
+ * to local cache and opens the native share sheet. Returns the local file URI.
  */
-export const downloadAndShareExport = async (format) => {
-  const extension = EXTENSION[format];
-  if (!extension) {
-    throw new Error(`Unsupported export format: ${format}`);
+export const downloadAndShareExport = async (projectId = useExpenseStore.getState().activeProjectId) => {
+  if (!projectId) {
+    throw new Error('No project available to export');
   }
 
   const token = await SecureStore.getItemAsync('user_token');
-  const destUri = `${FileSystem.cacheDirectory}xpenz-export-${Date.now()}.${extension}`;
+  const destUri = `${FileSystem.cacheDirectory}xpenz-export-${Date.now()}.xlsx`;
 
   const result = await FileSystem.downloadAsync(
-    `${CONFIG.BASE_URL}/export/${format}`,
+    `${CONFIG.BASE_URL}/export/projects/${projectId}/export/excel`,
     destUri,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
@@ -35,7 +30,7 @@ export const downloadAndShareExport = async (format) => {
 
   const canShare = await Sharing.isAvailableAsync();
   if (canShare) {
-    await Sharing.shareAsync(result.uri, { mimeType: MIME_TYPE[format] });
+    await Sharing.shareAsync(result.uri, { mimeType: XLSX_MIME });
   }
 
   return result.uri;

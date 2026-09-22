@@ -48,12 +48,12 @@ export const SettingsScreen = ({ navigation }) => {
     if (exporting) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setExporting(true);
-    showToast('Compiling full transactions data as CSV...', 'success');
+    showToast('Compiling transactions data as Excel...', 'success');
     try {
-      await downloadAndShareExport('csv');
-      showToast('CSV export downloaded successfully!', 'success');
+      await downloadAndShareExport();
+      showToast('Excel export downloaded successfully!', 'success');
     } catch {
-      showToast('Failed to export CSV data.', 'error');
+      showToast('Failed to export Excel data.', 'error');
     } finally {
       setExporting(false);
     }
@@ -231,7 +231,7 @@ export const SettingsScreen = ({ navigation }) => {
           {/* Export */}
           <TouchableOpacity activeOpacity={0.7} onPress={handleExportData} disabled={exporting} style={styles.clickableSettingRow}>
             <MaterialCommunityIcons name="database-export-outline" size={22} color={colors.textSecondary} style={{ marginRight: spacing.md }} />
-            <Text style={[styles.rowLabel, { color: colors.text }]}>Export All Data (CSV Format)</Text>
+            <Text style={[styles.rowLabel, { color: colors.text }]}>Export Data (Excel Format)</Text>
             {exporting ? (
               <ActivityIndicator size="small" color={colors.textSecondary} style={{ marginLeft: 'auto' }} />
             ) : (

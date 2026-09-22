@@ -14,9 +14,7 @@ import Button from '../../components/common/Button';
 import { downloadAndShareExport } from '../../utils/exportDownload';
 
 const FORMATS = [
-  { id: 'csv', label: 'CSV Spreadsheet', icon: 'file-delimited-outline', desc: 'All transactions for Excel / Sheets' },
-  { id: 'pdf', label: 'PDF Summary', icon: 'file-pdf-box', desc: 'Monthly report with category charts' },
-  { id: 'json', label: 'JSON Backup', icon: 'code-json', desc: 'Full offline backup payload' },
+  { id: 'excel', label: 'Excel Spreadsheet', icon: 'file-excel-outline', desc: 'All transactions for the active project' },
 ];
 
 export const DataExportScreen = ({ navigation }) => {
@@ -29,7 +27,7 @@ export const DataExportScreen = ({ navigation }) => {
     setPendingFormat(format);
     showToast(`Preparing ${format.toUpperCase()} export...`, 'success');
     try {
-      await downloadAndShareExport(format);
+      await downloadAndShareExport();
       showToast(`Export ready — ${format.toUpperCase()} downloaded!`, 'success');
     } catch {
       showToast(`Failed to export ${format.toUpperCase()} data.`, 'error');

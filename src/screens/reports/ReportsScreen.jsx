@@ -85,14 +85,14 @@ export const ReportsScreen = ({ navigation }) => {
     { type: 'warning', icon: 'alert-decagram-outline', color: '#ef4444', text: "AWS Utility hosting spike detected in Week 3." }
   ];
 
-  const handleExport = async (format) => {
+  const handleExport = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(`Exporting analytical payload as ${format.toUpperCase()}...`, 'success');
+    showToast('Exporting report as Excel...', 'success');
     try {
-      await downloadAndShareExport(format);
-      showToast(`Export ready — ${format.toUpperCase()} downloaded!`, 'success');
+      await downloadAndShareExport();
+      showToast('Export ready — Excel downloaded!', 'success');
     } catch {
-      showToast(`Failed to export ${format.toUpperCase()} report.`, 'error');
+      showToast('Failed to export Excel report.', 'error');
     }
   };
 
@@ -106,10 +106,10 @@ export const ReportsScreen = ({ navigation }) => {
         rightAction={(
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => handleExport('pdf')}
+            onPress={handleExport}
             style={[styles.exportBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
           >
-            <MaterialCommunityIcons name="file-pdf-box" size={22} color={colors.primary} />
+            <MaterialCommunityIcons name="file-excel-outline" size={22} color={colors.primary} />
           </TouchableOpacity>
         )}
       />
